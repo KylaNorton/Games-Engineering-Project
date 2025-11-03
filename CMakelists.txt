@@ -11,7 +11,7 @@ SET(OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY})
 
 #### Add External Dependencies ####
-add_subdirectory("lib/SFML-2.6.2")
+add_subdirectory("lib/SFML")
 set(SFML_INCS "lib/SFML/include")
 link_directories("${CMAKE_BINARY_DIR}/lib/SFML/lib")
 add_custom_target(copy_resources ALL COMMAND ${CMAKE_COMMAND} 
@@ -22,6 +22,8 @@ add_custom_target(copy_resources ALL COMMAND ${CMAKE_COMMAND}
 
 #### Practical 1 ####
 add_executable(Games-Engineering-Project 
+menu.hpp
+menu.cpp
 main.cpp
 
 
