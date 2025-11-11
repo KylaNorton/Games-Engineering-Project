@@ -3,6 +3,8 @@
 #include <iostream>
 
 int main() {
+  
+
     sf::RenderWindow window(sf::VideoMode(960, 540), "Amalgame");
     window.setVerticalSyncEnabled(true);
 
@@ -16,6 +18,8 @@ int main() {
                 window.close();
 
             if (inMenu)
+            
+
                 menu.handleEvent(e);
             else if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) {
                 // Go back to menu when Esc pressed

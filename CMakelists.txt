@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.11)
-project(setup)
+cmake_minimum_required(VERSION 3.21)
+project(Games-Engineering-Project)
 # Require modern C++
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -14,22 +14,44 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY})
 add_subdirectory("lib/SFML")
 set(SFML_INCS "lib/SFML/include")
 link_directories("${CMAKE_BINARY_DIR}/lib/SFML/lib")
-add_custom_target(copy_resources ALL COMMAND ${CMAKE_COMMAND} 
-  -E copy_directory
-    "${PROJECT_SOURCE_DIR}/res"
-    ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIGURATION>/res
-)
 
-#### Practical 1 ####
+
+#### Games-Engineering-Project ####
 add_executable(Games-Engineering-Project 
 menu.hpp
 menu.cpp
 main.cpp
-
-
 )
+
+add_custom_command(TARGET Games-Engineering-Project POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:Games-Engineering-Project>/res"
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          "${PROJECT_SOURCE_DIR}/res"
+          "$<TARGET_FILE_DIR:Games-Engineering-Project>/res"
+)
+
+if (WIN32)
+  add_custom_command(TARGET Games-Engineering-Project POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_RUNTIME_DLLS:Games-Engineering-Project> $<TARGET_FILE_DIR:Games-Engineering-Project>
+    COMMAND_EXPAND_LISTS
+  )
+endif()
+
+if (WIN32)
+  add_custom_command(TARGET Games-Engineering-Project POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_RUNTIME_DLLS:Games-Engineering-Project> $<TARGET_FILE_DIR:Games-Engineering-Project>
+    COMMAND_EXPAND_LISTS
+  )
+endif()
+
 target_include_directories(Games-Engineering-Project PRIVATE ${SFML_INCS})
-target_link_libraries(Games-Engineering-Project sfml-graphics)
+target_link_libraries(Games-Engineering-Project
+    sfml-graphics
+    sfml-window
+    sfml-system
+)
 
 set_target_properties(Games-Engineering-Project 
     PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY
