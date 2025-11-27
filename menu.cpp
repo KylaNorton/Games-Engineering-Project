@@ -5,7 +5,7 @@
 Menu::Menu(sf::RenderWindow& window)
     : window(window)
 {
-    // Try to load a font. If it fails, we still draw rectangles.
+    // load a font
     hasFont = font.loadFromFile("res/fonts/Inter-Regular.ttf");
     if (!hasFont) {
         std::cerr << "[WARN] Font not found at res/fonts/Inter-Regular.ttf. "
