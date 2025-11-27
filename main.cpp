@@ -10,7 +10,7 @@ enum class Screen { Menu, Game, Level, Settings };
 int main() {
   
 
-    sf::RenderWindow window(sf::VideoMode(960, 540), "Amalgame");
+    sf::RenderWindow window(sf::VideoMode(960, 540), "Overgrown");
     window.setVerticalSyncEnabled(true);
 
     Menu menu(window);

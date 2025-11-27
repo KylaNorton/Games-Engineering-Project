@@ -1,35 +1,63 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include <vector>
 
+// What the game can request for screen changes etc.
 enum class GameAction { None, Back, Pause, Play, Quit };
+
+// --- FARM TYPES ---
+
+// State of a tile
+enum class TileState { Empty, Planted, Grown };
+
+// One soil tile in the farm
+struct FarmTile {
+    sf::RectangleShape rect;
+    TileState state = TileState::Empty;
+    float growthTimer = 0.f;
+};
+
+// One farmer (player or AI)
+struct Farmer {
+    sf::CircleShape body;
+    sf::Vector2f velocity{0.f, 0.f};
+    int score = 0;
+};
 
 class Game {
 public:
     explicit Game(sf::RenderWindow& window);
+
     void handleEvent(const sf::Event& e);
     void update(float dt);
     void draw();
-    GameAction getAction() const { return action; }
-    void clearAction() { action = GameAction::None; } // for when you return to menu
 
+    GameAction getAction() const { return action; }
+    void clearAction() { action = GameAction::None; }
 
     void setSpeed(float s) { speed = s; } // from Level page
+
 private:
     sf::RenderWindow& window;
-    sf::CircleShape player; // minimal player
-    float speed = 200.f;
-    sf::Font font;                // <-- loaded once for all labels
-    bool hasFont = false;
-    bool PauseGame { false }; // shows a popup page during the pause
 
+    // Core
+    float speed = 200.f;
+    bool PauseGame { false };
+
+    // Font & HUD
+    sf::Font font;
+    bool hasFont = false;
+
+    // Buttons (back / pause)
     struct IconButton {
         sf::RectangleShape box;
-        sf::Sprite sprite; //image on the box
+        sf::Sprite sprite;
     };
 
-    IconButton backButton; //arrow to go back to menu
-    IconButton pauseButton; //play/pause button
+    IconButton backButton;
+    IconButton pauseButton;
 
+    // Info bar containers (just rectangles)
     struct InfoBoard {
         sf::RectangleShape box;
     };
@@ -38,5 +66,24 @@ private:
     InfoBoard timer;
     InfoBoard board;
 
-    GameAction action{GameAction::None};
+    // Farm grid
+    std::vector<FarmTile> farm;
+    int gridCols = 6;
+    int gridRows = 3;
+    float tileSize = 80.f;
+
+    // Farmers
+    Farmer playerFarmer;
+    Farmer aiFarmer;
+
+    // Texts for HUD
+    sf::Text playerScoreText;
+    sf::Text aiScoreText;
+    sf::Text timerText;
+
+    // Match timer
+    float gameTimer = 60.f;
+
+    // Action for main.cpp
+    GameAction action { GameAction::None };
 };
