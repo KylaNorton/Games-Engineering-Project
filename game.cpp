@@ -88,16 +88,27 @@ Game::Game(sf::RenderWindow& win) : window(win) {
                 startX + col * tileSize + 2.f,
                 startY + row * tileSize + 2.f
             });
-            tile.rect.setFillColor(sf::Color(90, 60, 30)); // brown soil
+            if(col >= 1 && col <4){
+                tile.walkable = true;
+                tile.rect.setFillColor(sf::Color(90, 60, 30)); // brown soil
+            } else {
+                tile.walkable = false;
+                tile.rect.setFillColor(sf::Color(100,100,100));
+            }
+            
             farm.push_back(tile);
         }
     }
 
     // --- PLAYER FARMER ---
+    sf::Vector2f startPos;
+    startPos.x = startX + startCol * tileSize + tileSize / 2.f;
+    startPos.y = startY + startRow * tileSize + tileSize / 2.f;
+
     playerFarmer.body.setRadius(18.f);
     playerFarmer.body.setOrigin(18.f, 18.f);
     playerFarmer.body.setFillColor(sf::Color::Cyan);
-    playerFarmer.body.setPosition(window.getSize().x * 0.3f, startY + gridRows * tileSize + 80.f);
+    playerFarmer.body.setPosition(startPos);
 
     // --- AI FARMER ---
     aiFarmer.body.setRadius(18.f);
@@ -141,7 +152,7 @@ void Game::handleEvent(const sf::Event& e) {
         sf::Vector2f p = playerFarmer.body.getPosition();
 
         for (auto& tile : farm) {
-            if (tile.rect.getGlobalBounds().contains(p)) {
+            if (tile.rect.getGlobalBounds().contains(p) && tile.walkable) {
                 if (tile.state == TileState::Empty) {
                     // plant
                     tile.state = TileState::Planted;
@@ -172,7 +183,43 @@ void Game::update(float dt) {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) v.x += 1.f;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))    v.y -= 1.f;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))  v.y += 1.f;
-    playerFarmer.body.move(v * speed * dt);
+    
+// --- PLAYER MOVEMENT ---
+// After generating 3×3 brown tiles:
+ float startX = (window.getSize().x - gridCols * tileSize) / 2.f;
+    float startY = 120.f; // under the info board
+
+// The movement area should ONLY be the 3 brown tiles in the middle.
+// So skip the first grey column: startX + tileSize
+farmBounds = sf::FloatRect(
+    startX + tileSize,   // left edge of brown zone
+    startY,              // top edge
+    3 * tileSize,        // width = 3 brown tiles
+    3 * tileSize         // height = 3 brown rows
+);
+
+
+// proposed next position
+sf::Vector2f next = playerFarmer.body.getPosition() + v * speed * dt;
+float r = playerFarmer.body.getRadius();
+
+// circle bounds at next position
+sf::FloatRect circle(
+    next.x - r,
+    next.y - r,
+    r * 2.f,
+    r * 2.f
+);
+
+// allow movement only if the ENTIRE circle remains inside farmBounds
+if (farmBounds.contains(circle.left, circle.top) &&
+    farmBounds.contains(circle.left + circle.width, circle.top) &&
+    farmBounds.contains(circle.left, circle.top + circle.height) &&
+    farmBounds.contains(circle.left + circle.width, circle.top + circle.height))
+{
+    playerFarmer.body.setPosition(next);
+}
+
 
     // --- AI MOVEMENT (super dumb version) ---
     // AI just wanders horizontally across the farm

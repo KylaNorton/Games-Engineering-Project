@@ -15,6 +15,7 @@ struct FarmTile {
     sf::RectangleShape rect;
     TileState state = TileState::Empty;
     float growthTimer = 0.f;
+    bool walkable = false;
 };
 
 // One farmer (player or AI)
@@ -68,9 +69,14 @@ private:
 
     // Farm grid
     std::vector<FarmTile> farm;
-    int gridCols = 6;
+    int gridCols = 5;
     int gridRows = 3;
+    int startRow = 1;
+    int startCol = 2;
     float tileSize = 80.f;
+
+    sf::FloatRect farmBounds;
+
 
     // Farmers
     Farmer playerFarmer;
