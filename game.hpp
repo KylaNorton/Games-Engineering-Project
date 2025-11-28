@@ -2,10 +2,8 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 
-// What the game can request for screen changes etc.
-enum class GameAction { None, Back, Pause, Play, Quit };
-
-// --- FARM TYPES ---
+//different game screen changes
+enum class GameAction { None, Back, Pause};
 
 // State of a tile
 enum class TileState { Empty, Planted, Grown };
@@ -45,6 +43,11 @@ private:
     float speed = 200.f;
     bool PauseGame { false };
 
+    //Winner options
+    bool EndGame {false};
+    enum class Winner {None, AI, Player, Tie};
+    Winner winner {Winner::None};
+
     // Font & HUD
     sf::Font font;
     bool hasFont = false;
@@ -81,6 +84,7 @@ private:
     // Farmers
     Farmer playerFarmer;
     Farmer aiFarmer;
+    
 
     // Texts for HUD
     sf::Text playerScoreText;

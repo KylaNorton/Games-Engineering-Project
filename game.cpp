@@ -138,7 +138,19 @@ void Game::handleEvent(const sf::Event& e) {
     if (PauseGame) {
         if (e.type == sf::Event::KeyPressed) {
             if (e.key.code == sf::Keyboard::Space) {
-                PauseGame = false;           // close popup, back to game
+                PauseGame = false; // close popup, back to game
+            }
+        }
+        return; // while popup is open, ignore other events
+    }
+
+    if (EndGame) {
+        if (e.type == sf::Event::KeyPressed) {
+            if (e.key.code == sf::Keyboard::P) {
+              // restart the game, same level
+            }
+            else if (e.key.code == sf::Keyboard::M) {
+                action = GameAction::Back;   // back to menu
             }
         }
         return; // while popup is open, ignore other events
@@ -175,7 +187,7 @@ void Game::handleEvent(const sf::Event& e) {
 }
 
 void Game::update(float dt) {
-    if (PauseGame) return; // don't update when paused
+    if (PauseGame || EndGame) return; // don't update when game is paused
 
     // --- PLAYER MOVEMENT ---
     sf::Vector2f v(0.f, 0.f);
@@ -244,7 +256,15 @@ if (farmBounds.contains(circle.left, circle.top) &&
 
     // --- update global timer ---
     gameTimer -= dt;
-    if (gameTimer < 0.f) gameTimer = 0.f; // stop at zero for now
+    if (gameTimer <= 0.f) {
+        gameTimer = 0.f;
+        if (!EndGame) {
+            EndGame = true;
+            if (playerFarmer.score > aiFarmer.score) winner = Winner::Player;
+            else if (aiFarmer.score > playerFarmer.score) winner = Winner::AI;
+            else winner = Winner::Tie;
+        }
+    }
 
     if (hasFont) {
         // update timer display
@@ -268,17 +288,17 @@ void Game::draw() {
 
     window.draw(board.box); //show info bar
 
-    if (hasFont) {
+    if (hasFont) { //show text
         window.draw(playerScoreText);
         window.draw(aiScoreText);
         window.draw(timerText);
     }
 
-    // --- FARM ---
+    // Farm
     for (auto& tile : farm)
         window.draw(tile.rect);
 
-    // --- FARMERS ---
+    // Farmes
     window.draw(playerFarmer.body);
     window.draw(aiFarmer.body);
 
@@ -295,6 +315,44 @@ void Game::draw() {
         text.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f);
         window.draw(text);
     }
+
+    // End of game popup
+    if (EndGame && hasFont) {
+        sf::RectangleShape overlay(sf::Vector2f(window.getSize()));
+        overlay.setFillColor(sf::Color(0, 0, 0, 180));
+        window.draw(overlay);
+
+        sf::Text text;
+        text.setFont(font);
+        text.setCharacterSize(24);
+        text.setFillColor(sf::Color::White);
+
+        // End of game message
+        std::string msg = "Game Over\n\n";
+        msg += "Scores:\n";
+        msg += "You: " + std::to_string(playerFarmer.score) +
+            "   AI: " + std::to_string(aiFarmer.score) + "\n\n";
+
+        if (winner == Winner::Player) {
+            msg += "You won!\n\n";
+        } else if (winner == Winner::AI) {
+            msg += "AI won!\n\n";
+        } else {
+            msg += "It's a tie! \n\n";
+        }
+
+        msg += "Press P to play again\n";
+        msg += "Press M to go back to Menu";
+
+        text.setString(msg);
+
+        auto tb = text.getLocalBounds();
+        text.setOrigin(tb.left + tb.width / 2.f, tb.top + tb.height / 2.f);
+        text.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f);
+        window.draw(text);
+    }
+
+
 
     window.display();
 }

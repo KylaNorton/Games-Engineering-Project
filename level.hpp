@@ -3,9 +3,9 @@
 
 enum class Difficulty { Easy=0, Medium=1, Hard=2, None=3 };
 
-class LevelPage {
+class Level {
 public:
-    explicit LevelPage(sf::RenderWindow& window);
+    explicit Level(sf::RenderWindow& window);
     void handleEvent(const sf::Event& e);
     void draw();
     Difficulty chosen() const { return choice; }

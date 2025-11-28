@@ -3,9 +3,14 @@
 #include "game.hpp"
 #include "level.hpp"
 #include "settings.hpp"
+#include "map.hpp"
+#include "gameSettings.hpp"
+#include "levelSettings.hpp"
+#include "account.hpp"
+#include "scores.hpp"
 #include <iostream>
 
-enum class Screen { Menu, Game, Level, Settings };
+enum class Screen { Menu, Game, Level, Settings, Map, Scores, Account, GameSettings, LevelSettings };
 
 int main() {
   
@@ -15,8 +20,13 @@ int main() {
 
     Menu menu(window);
     Game game(window);
-    LevelPage level(window);
-    SettingsPage settings(window);
+    Level level(window);
+    Settings settings(window);
+    Map map(window);
+    Scores scores(window);
+    Account account(window);
+    GameSettings gameSettings(window);
+    LevelSettings levelSettings(window);
     Screen screen = Screen::Menu;
 
     sf::Clock clk;
@@ -34,11 +44,39 @@ int main() {
                     break;
                 case Screen::Game:
                     game.handleEvent(e);
-                    if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) screen = Screen::Menu;
+                    if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) screen = Screen::GameSettings;
+                    break;
+                case Screen::GameSettings:
+                    gameSettings.handleEvent(e);
+                    if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) {
+                        screen = Screen::Menu;
+                        gameSettings.clearAction();
+                    }
+                    break;
+                case Screen::Account:
+                    account.handleEvent(e);
+                    if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) screen = Screen::GameSettings;
                     break;
                 case Screen::Level:
                     level.handleEvent(e);
-                    if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) { level.reset(); screen = Screen::Menu; }
+                    if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) { 
+                        level.reset(); screen = Screen::Menu; 
+                    }
+                    break;
+                case Screen::LevelSettings:
+                    levelSettings.handleEvent(e);
+                    if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) {
+                        screen = Screen::Menu;
+                        levelSettings.clearAction();
+                    }
+                    break;
+                case Screen::Map:
+                    map.handleEvent(e);
+                    if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) screen = Screen::LevelSettings;
+                    break;
+                case Screen::Scores:
+                    scores.handleEvent(e);
+                    if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) screen = Screen::LevelSettings;
                     break;
                 case Screen::Settings:
                     settings.handleEvent(e);
@@ -55,8 +93,8 @@ int main() {
                 // read menu action → change screen
                 MenuAction a = menu.getAction();
                 if (a != MenuAction::None) {
-                    if (a == MenuAction::Start)     screen = Screen::Game;
-                    else if (a == MenuAction::Level)   screen = Screen::Level;
+                    if (a == MenuAction::Start)     screen = Screen::GameSettings;
+                    else if (a == MenuAction::Level)   screen = Screen::LevelSettings;
                     else if (a == MenuAction::Settings)screen = Screen::Settings;
                     menu.clearAction();
                 }
@@ -73,6 +111,56 @@ int main() {
                     game.clearAction();
                 }
             }    break;
+
+            case Screen::GameSettings: {
+                gameSettings.draw();
+
+                GameSetAction a = gameSettings.getAction();
+                if (a != GameSetAction::None) {
+                    if (a == GameSetAction::NewGame) {
+                        // later: reset game state if needed
+                        screen = Screen::Game;
+                    }
+                    else if (a == GameSetAction::PlayAgain) {
+                        // same for now: go to Game
+                        screen = Screen::Game;
+                    }
+                    else if (a == GameSetAction::Account) {
+                        screen = Screen::Account;
+                    }
+                    gameSettings.clearAction();
+                }
+            } break;
+
+            case Screen::Account: {
+                account.draw();
+            } break;
+
+            case Screen::Map: {
+                map.draw();
+            } break;
+
+            case Screen::Scores: {
+                scores.draw();
+             } break;
+            
+            case Screen::LevelSettings: {
+                levelSettings.draw();
+
+                LevelAction a = levelSettings.getAction();
+                if (a != LevelAction::None) {
+                    if (a == LevelAction::Map) {
+                        // later: reset game state if needed
+                        screen = Screen::Map;
+                    }
+                    else if (a == LevelAction::Scores) {
+                        // same for now: go to Game
+                        screen = Screen::Scores;
+                    }
+                    levelSettings.clearAction();
+                }
+            } break;
+
 
             case Screen::Level: {
                 level.draw();

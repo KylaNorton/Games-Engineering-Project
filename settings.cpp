@@ -1,7 +1,7 @@
 #include "settings.hpp"
 #include <iostream>
 
-SettingsPage::SettingsPage(sf::RenderWindow& win) : window(win) {
+Settings::Settings(sf::RenderWindow& win) : window(win) {
     hasFont = font.loadFromFile("res/fonts/Inter-Regular.ttf");
     if (!hasFont) std::cerr << "[WARN] Settings font not found.\n";
 
@@ -24,7 +24,7 @@ SettingsPage::SettingsPage(sf::RenderWindow& win) : window(win) {
     }
 }
 
-void SettingsPage::handleEvent(const sf::Event& e) {
+void Settings::handleEvent(const sf::Event& e) {
     if (e.type == sf::Event::MouseButtonPressed && e.mouseButton.button == sf::Mouse::Left) {
         auto mp = window.mapPixelToCoords(sf::Mouse::getPosition(window));
         if (toggleBox.getGlobalBounds().contains(mp)) {
@@ -36,7 +36,7 @@ void SettingsPage::handleEvent(const sf::Event& e) {
     }
 }
 
-void SettingsPage::draw() {
+void Settings::draw() {
     window.clear(sf::Color(16, 24, 34));
     if (hasFont) window.draw(label);
     window.draw(toggleBox);

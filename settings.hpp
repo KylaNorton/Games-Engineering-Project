@@ -1,9 +1,9 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 
-class SettingsPage {
+class Settings {
 public:
-    explicit SettingsPage(sf::RenderWindow& window);
+    explicit Settings(sf::RenderWindow& window);
     void handleEvent(const sf::Event& e);
     void draw();
     bool showFps() const { return fpsOn; }

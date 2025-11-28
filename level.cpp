@@ -7,7 +7,7 @@ static void centerText(sf::Text& t, const sf::RectangleShape& box) {
     t.setPosition(box.getPosition() + box.getSize()*0.5f);
 }
 
-static void setup(sf::Font& f, bool hasFont, LevelPage::Btn& b,
+static void setup(sf::Font& f, bool hasFont, Level::Btn& b,
                   const char* label, sf::Vector2f pos, sf::Vector2f size,
                   const sf::Color& idle, const sf::Color& text) {
     b.box.setSize(size);
@@ -22,7 +22,7 @@ static void setup(sf::Font& f, bool hasFont, LevelPage::Btn& b,
     }
 }
 
-LevelPage::LevelPage(sf::RenderWindow& win) : window(win) {
+Level::Level(sf::RenderWindow& win) : window(win) {
     hasFont = font.loadFromFile("res/fonts/Inter-Regular.ttf");
     if (!hasFont) std::cerr << "[WARN] LevelPage font not found.\n";
 
@@ -35,7 +35,7 @@ LevelPage::LevelPage(sf::RenderWindow& win) : window(win) {
     setup(font, hasFont, hard,   "Hard",   pos(340.f), size, idle, text);
 }
 
-void LevelPage::handleEvent(const sf::Event& e) {
+void Level::handleEvent(const sf::Event& e) {
     if (e.type == sf::Event::MouseMoved) {
         auto mp = sf::Mouse::getPosition(window);
         for (auto* b : {&easy,&medium,&hard}) {
@@ -51,7 +51,7 @@ void LevelPage::handleEvent(const sf::Event& e) {
     }
 }
 
-void LevelPage::draw() {
+void Level::draw() {
     window.clear(sf::Color(18,18,28));
     for (auto* b : {&easy,&medium,&hard}) {
         window.draw(b->box);

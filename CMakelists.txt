@@ -18,6 +18,11 @@ link_directories("${CMAKE_BINARY_DIR}/lib/SFML/lib")
 
 #### Games-Engineering-Project ####
 add_executable(Games-Engineering-Project 
+levelSettings.cpp levelSettings.hpp
+gameSettings.cpp gameSettings.hpp
+map.cpp map.hpp
+scores.cpp scores.hpp
+account.cpp account.hpp
 settings.cpp settings.hpp
 game.cpp game.hpp
 level.cpp level.hpp
