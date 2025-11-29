@@ -23,6 +23,9 @@ public:
     static void loadPlayerData(const std::string& filename);
     static void setActivePlayer(const PlayerSave& ps); // NEW
 
+    static void createNewPlayer(const std::string& name);
+
+
 public:
     std::string name;
     int levelsCompleted;

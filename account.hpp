@@ -3,7 +3,7 @@
 #include <array>
 #include <string>
 
-enum class AccountAction { None}; 
+enum class AccountAction { None, SelectPlayer, CreatePlayer}; 
 
 class Account {
 public:
@@ -38,5 +38,12 @@ private:
     sf::Color textColor{255, 230, 255};
 
     AccountAction action{AccountAction::None};
+
+    bool enteringName = false;
+    std::string newNameInput;
+    sf::Text inputText;
+
+    std::vector<std::string> playerNames;
+
 };
 

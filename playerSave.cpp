@@ -2,8 +2,11 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <direct.h>   // for _mkdir on Windows
+
 
 using namespace std;
+
 
 PlayerSave PlayerSave::activePlayer = PlayerSave("Default");
 
@@ -177,3 +180,39 @@ std::string PlayerSave::showPlayerSelection(sf::RenderWindow& window) {
 
     return "";
 }
+
+
+void PlayerSave::createNewPlayer(const std::string& playerName)
+{
+    if (playerName.empty()) {
+        std::cout << "No name entered.\n";
+        return;
+    }
+
+    // Ensure directory exists (works on Windows)
+    _mkdir("save_files");
+
+    // CREATE SAVE FILE
+    std::string filePath = "save_files/" + playerName + "_save.txt";
+    std::ofstream saveFile(filePath);
+
+    if (!saveFile.is_open()) {
+        std::cout << "ERROR: Cannot create save file at " << filePath << "\n";
+        return;
+    }
+
+    saveFile << "Name:" << playerName << "\n";
+    saveFile << "LevelsCompleted: 0\n";
+    saveFile << "highScores: 0, 0, 0, 0, 0\n";
+    saveFile.close();
+
+    // ADD TO PLAYERS LIST
+    std::ofstream playersList("players.txt", std::ios::app);
+    if (playersList.is_open()) {
+        playersList << playerName << "_save.txt \n";
+        playersList.close();
+    }
+
+    std::cout << "Created player: " << playerName << "\n";
+}
+

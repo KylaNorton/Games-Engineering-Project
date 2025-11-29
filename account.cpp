@@ -27,6 +27,15 @@ Account::Account(sf::RenderWindow& window) : window(window)
 
         setupButton(buttons[i], players[i], pos);
     }
+    // Add the "Create New Player" button at bottom
+    setupButton(buttons[playerNames.size()], "Create New Player", {100.f, 450.f});
+    setupButton(buttons.back(), "Back", {100.f, 500.f});
+
+    inputText.setFont(font);
+    inputText.setCharacterSize(32);
+    inputText.setFillColor(sf::Color::White);
+    inputText.setPosition(300.f, 200.f);
+    inputText.setString("");
 }
 
 
@@ -71,23 +80,67 @@ void Account::checkHover() {
     }
 }
 
-void Account::handleEvent(const sf::Event& e)
-{
-    if (e.type == sf::Event::MouseButtonPressed &&
-        e.mouseButton.button == sf::Mouse::Left)
-    {
+void Account::handleEvent(const sf::Event& e) {
+
+    // ------------------
+    // Text Entry Mode
+    // ------------------
+    if (enteringName) {
+
+        if (e.type == sf::Event::TextEntered) {
+
+            if (e.text.unicode == '\b') {
+                if (!newNameInput.empty()) newNameInput.pop_back();
+            }
+            else if (e.text.unicode == '\r') {
+                // ENTER pressed → create player
+                PlayerSave::createNewPlayer(newNameInput);
+                playerNames = PlayerSave::loadPlayerList(); // refresh buttons
+                enteringName = false;
+                newNameInput.clear();
+                inputText.setString("");
+                return;
+            }
+            else if (e.text.unicode < 128 && std::isalnum(e.text.unicode)) {
+                newNameInput += static_cast<char>(e.text.unicode);
+            }
+            inputText.setString("Name: " + newNameInput);
+        }
+        return; // Ignore button clicks while typing
+    }
+
+
+    // ------------------
+    // Button Click Mode
+    // ------------------
+    if (e.type == sf::Event::MouseButtonPressed && e.mouseButton.button == sf::Mouse::Left) {
+        
         sf::Vector2i mp = sf::Mouse::getPosition(window);
 
-        for (size_t i = 0; i < buttons.size(); i++)
-        {
-            if (buttons[i].contains(window, mp))
-            {
-                // Print the stored button label text
-                if (hasFont)
-                    std::cout << buttons[i].label.getString().toAnsiString()
-                              << " is now playing" << std::endl;
-                else
-                    std::cout << "Button " << i << " clicked" << std::endl;
+        // Loop through buttons
+        for (size_t i = 0; i < buttons.size(); i++) {
+
+            if (buttons[i].contains(window, mp)) {
+
+                // -------------------
+                // STEP 6 — Create Player button
+                // -------------------
+                if (buttons[i].label.getString() == "Create New Player") {
+                    enteringName = true;
+                    newNameInput.clear();
+                    inputText.setString("Name: ");
+                    return;
+                }
+
+                // SELECT AN EXISTING PLAYER
+                if (i < playerNames.size()) {
+                    std::cout << playerNames[i] << " is now playing\n";
+                }
+
+                // BACK BUTTON
+                if (buttons[i].label.getString() == "Back") {
+                    action = AccountAction::None;
+                }
             }
         }
     }
@@ -103,6 +156,18 @@ void Account::draw()
         if (hasFont)
             window.draw(b.label);
     }
+
+    if (enteringName) {
+    sf::RectangleShape box;
+    box.setSize({400.f, 80.f});
+    box.setFillColor(sf::Color(20, 20, 20));
+    box.setOutlineColor(sf::Color::White);
+    box.setOutlineThickness(2.f);
+    box.setPosition(250.f, 180.f);
+
+    window.draw(box);
+    window.draw(inputText);
+}
 
     window.display();
 }
