@@ -27,6 +27,7 @@ settings.cpp settings.hpp
 game.cpp game.hpp
 level.cpp level.hpp
 menu.hpp menu.cpp
+playerSave.hpp playerSave.cpp
 main.cpp
 )
 

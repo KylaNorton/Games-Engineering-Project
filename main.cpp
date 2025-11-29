@@ -12,6 +12,9 @@
 
 enum class Screen { Menu, Game, Level, Settings, Map, Scores, Account, GameSettings, LevelSettings };
 
+std::string CURRENT_PLAYER = "";
+
+
 int main() {
   
 

@@ -12,7 +12,6 @@ public:
     void draw();
     AccountAction getAction() const { return action; }
     void clearAction() { action = AccountAction::None; } // for when you return to menu
-
 private:
     struct Button {
         sf::RectangleShape box;
@@ -28,7 +27,7 @@ private:
     void centerLabel(Button& b);
 
     sf::RenderWindow& window;
-    std::array<Button, 4> buttons;
+    std::vector<Button> buttons;
     sf::Font font;                // <-- loaded once for all labels
     bool hasFont = false;         // if false, we skip drawing text
 
@@ -40,3 +39,4 @@ private:
 
     AccountAction action{AccountAction::None};
 };
+
