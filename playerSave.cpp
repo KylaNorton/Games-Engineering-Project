@@ -16,7 +16,7 @@ PlayerSave::PlayerSave(const string& name)
 
 /* ----------------------------------------------------- */
 string PlayerSave::getFilename() const {
-    return "save_files/" + name + "_save.txt";
+    return "../../../save_files/" + name + "_save.txt";
 }
 
 /* ----------------------------------------------------- */
@@ -63,14 +63,14 @@ bool PlayerSave::loadFromFile() {
 
 /* ----------------------------------------------------- */
 void PlayerSave::registerInPlayerList() const {
-    ofstream list("players.txt", ios::app);
+    ofstream list("../../../players.txt", ios::app);
     list << name << "_save.txt\n";
 }
 
 /* ----------------------------------------------------- */
 vector<string> PlayerSave::loadPlayerList() {
     vector<string> list;
-    ifstream file("players.txt");
+    ifstream file("../../../players.txt");
 
     string line;
     while (getline(file, line)) {
@@ -88,7 +88,7 @@ void PlayerSave::setActivePlayer(const PlayerSave& ps) {
 /* ----------------------------------------------------- */
 void PlayerSave::loadPlayerData(const string& filename) {
 
-    string fullpath = "save_files/" + filename;
+    string fullpath = "../../../save_files/" + filename;
     ifstream file(fullpath);
     if (!file) return;
 
@@ -190,10 +190,10 @@ void PlayerSave::createNewPlayer(const std::string& playerName)
     }
 
     // Ensure directory exists (works on Windows)
-    _mkdir("save_files");
+    _mkdir("../../../save_files");
 
     // CREATE SAVE FILE
-    std::string filePath = "save_files/" + playerName + "_save.txt";
+    std::string filePath = "../../../save_files/" + playerName + "_save.txt";
     std::ofstream saveFile(filePath);
 
     if (!saveFile.is_open()) {
@@ -201,15 +201,15 @@ void PlayerSave::createNewPlayer(const std::string& playerName)
         return;
     }
 
-    saveFile << "Name:" << playerName << "\n";
+    saveFile << "Name: " << playerName << "\n";
     saveFile << "LevelsCompleted: 0\n";
-    saveFile << "highScores: 0, 0, 0, 0, 0\n";
+    saveFile << "HighScores: 0, 0, 0, 0, 0\n";
     saveFile.close();
 
     // ADD TO PLAYERS LIST
-    std::ofstream playersList("players.txt", std::ios::app);
+    std::ofstream playersList("../../../players.txt", std::ios::app);
     if (playersList.is_open()) {
-        playersList << playerName << "_save.txt \n";
+        playersList << playerName << "_save.txt\n";
         playersList.close();
     }
 

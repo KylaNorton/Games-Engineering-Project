@@ -150,7 +150,7 @@ void Account::handleEvent(const sf::Event& e)
                     };
 
                     std::string oldFilename = trim(playerButtons[renamingIndex].playerFilename);
-                    std::string oldPath = std::string("save_files/") + oldFilename;
+                    std::string oldPath = std::string("../../../save_files/") + oldFilename;
                     
                     // Extract old player name (strip _save.txt)
                     std::string oldName = oldFilename;
@@ -162,7 +162,7 @@ void Account::handleEvent(const sf::Event& e)
 
                     std::string newName = trim(renameInput);
                     std::string newFilename = newName + "_save.txt";
-                    std::string newPath = std::string("save_files/") + newFilename;
+                    std::string newPath = std::string("../../../save_files/") + newFilename;
 
                     // Rename the file
                     if (std::rename(oldPath.c_str(), newPath.c_str()) == 0) {
@@ -196,7 +196,7 @@ void Account::handleEvent(const sf::Event& e)
                     std::cout << "Updated Name: field in save file to " << newName << "\n";
 
                     // Update players.txt
-                    std::ifstream in("players.txt");
+                    std::ifstream in("../../../players.txt");
                     std::vector<std::string> lines;
                     std::string line;
                     while (std::getline(in, line)) {
@@ -209,7 +209,7 @@ void Account::handleEvent(const sf::Event& e)
                     }
                     in.close();
 
-                    std::ofstream out("players.txt");
+                    std::ofstream out("../../../players.txt");
                     for (auto &L : lines) out << L << "\n";
                     out.close();
 
@@ -327,7 +327,7 @@ void Account::handleEvent(const sf::Event& e)
                         return s.substr(a, b - a + 1);
                     };
                     std::string fn = trim(playerButtons[i].playerFilename);
-                    std::string fullpath = std::string("save_files/") + fn;
+                    std::string fullpath = std::string("../../../save_files/") + fn;
                     if (std::remove(fullpath.c_str()) == 0) {
                         std::cout << "Deleted file: " << fullpath << "\n";
                     } else {
@@ -335,7 +335,7 @@ void Account::handleEvent(const sf::Event& e)
                     }
 
                     // Update players.txt
-                    std::ifstream in("players.txt");
+                    std::ifstream in("../../../players.txt");
                     std::vector<std::string> lines;
                     std::string line;
                     while (std::getline(in, line)) {
@@ -343,7 +343,7 @@ void Account::handleEvent(const sf::Event& e)
                     }
                     in.close();
 
-                    std::ofstream out("players.txt");
+                    std::ofstream out("../../../players.txt");
                     for (auto &L : lines) out << L << "\n";
                     out.close();
 
