@@ -3,15 +3,23 @@
 #include <vector>
 
 //different game screen changes
-enum class GameAction { None, Back, Pause};
+enum class GameAction { None, Back, Pause, Play};
 
 // State of a tile
-enum class TileState { Empty, Planted, Grown };
+enum class TileState { Empty, Grown, Seeded, Watered, Suned, Marketed };
+
+enum class ActionType { None, Plant, Harvest, TakeSeed, TakeWater, TakeSun, DropWater, DropSun, DropProduct };
+
+enum class GroundType { Empty, Soil, Wall, Market, Seeds, Water, Sun, Trash };
 
 // One soil tile in the farm
 struct FarmTile {
     sf::RectangleShape rect;
+    //sf::RectangleShape leftField;
+    //sf::RectangleShape rightField;
     TileState state = TileState::Empty;
+    GroundType type = GroundType::Empty;
+    //ActionType action = ActionType::None;
     float growthTimer = 0.f;
     bool walkable = false;
 };
@@ -21,6 +29,10 @@ struct Farmer {
     sf::CircleShape body;
     sf::Vector2f velocity{0.f, 0.f};
     int score = 0;
+    bool hasSeed = false;
+    bool hasWater = false;
+    bool hasSun = false;
+    bool hasProduct = false;
 };
 
 class Game {
@@ -42,6 +54,14 @@ private:
     // Core
     float speed = 200.f;
     bool PauseGame { false };
+
+    sf::RectangleShape leftField;
+    sf::RectangleShape rightField;
+    sf::RectangleShape topBar;
+    sf::RectangleShape bottomBar;
+    sf::RectangleShape leftBar;
+    sf::RectangleShape rightBar;
+    sf::RectangleShape centerPath;
 
     //Winner options
     bool EndGame {false};
@@ -72,19 +92,16 @@ private:
 
     // Farm grid
     std::vector<FarmTile> farm;
-    int gridCols = 5;
-    int gridRows = 3;
-    int startRow = 1;
-    int startCol = 2;
+    int gridCols = 12;
+    int gridRows = 6;
+    sf::Vector2f gridOrigin;
     float tileSize = 80.f;
 
     sf::FloatRect farmBounds;
 
-
     // Farmers
     Farmer playerFarmer;
     Farmer aiFarmer;
-    
 
     // Texts for HUD
     sf::Text playerScoreText;

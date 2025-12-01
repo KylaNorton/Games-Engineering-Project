@@ -22,7 +22,7 @@ int main() {
     window.setVerticalSyncEnabled(true);
 
     Menu menu(window);
-    Game game(window);
+    //Game game(window);
     Level level(window);
     Settings settings(window);
     Map map(window);
@@ -31,6 +31,9 @@ int main() {
     GameSettings gameSettings(window);
     LevelSettings levelSettings(window);
     Screen screen = Screen::Menu;
+
+    Game* game = nullptr;  // pointer so we can reset the game when starting a new one
+    //
 
     sf::Clock clk;
 
@@ -46,7 +49,7 @@ int main() {
                     menu.handleEvent(e);
                     break;
                 case Screen::Game:
-                    game.handleEvent(e);
+                    game->handleEvent(e);
                     if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) screen = Screen::GameSettings;
                     break;
                 case Screen::GameSettings:
@@ -104,14 +107,19 @@ int main() {
             } break;
 
             case Screen::Game: {
-                game.update(dt);
-                game.draw();
+                game->update(dt);
+                game->draw();
                 
-                GameAction b = game.getAction();
+                GameAction b = game->getAction();
                 if (b != GameAction::None) {
-                    if (b == GameAction::Back) screen = Screen::Menu;
-                    else if (b == GameAction::Pause) ;
-                    game.clearAction();
+                    if (b == GameAction::Back) screen = Screen::GameSettings;
+                    if (b == GameAction::Pause);
+                    if (b == GameAction::Play) {
+                        delete game;
+                        game = new Game(window);
+                        screen = Screen::Game;
+                    }
+                    game->clearAction();
                 }
             }    break;
 
@@ -120,12 +128,16 @@ int main() {
 
                 GameSetAction a = gameSettings.getAction();
                 if (a != GameSetAction::None) {
-                    if (a == GameSetAction::NewGame) {
+                    if (a == GameSetAction::NewGame && game == nullptr) {
                         // later: reset game state if needed
-                        screen = Screen::Game;
+                        delete game;
+                        game = new Game(window);
+                        screen = Screen::Game;  
                     }
                     else if (a == GameSetAction::PlayAgain) {
                         // same for now: go to Game
+                        delete game;
+                        game = new Game(window);
                         screen = Screen::Game;
                     }
                     else if (a == GameSetAction::Account) {
@@ -169,10 +181,10 @@ int main() {
                 level.draw();
                 // if a level selected, adjust game speed and go to menu
                 auto d = level.chosen();
-                if (d != Difficulty::None) {
-                    if (d == Difficulty::Easy)   game.setSpeed(160.f);
-                    if (d == Difficulty::Medium) game.setSpeed(220.f);
-                    if (d == Difficulty::Hard)   game.setSpeed(300.f);
+                    if (d != Difficulty::None) {
+                    if (d == Difficulty::Easy)   game->setSpeed(160.f);
+                    if (d == Difficulty::Medium) game->setSpeed(220.f);
+                    if (d == Difficulty::Hard)   game->setSpeed(300.f);
                     level.reset();
                     screen = Screen::Menu;
                 }
