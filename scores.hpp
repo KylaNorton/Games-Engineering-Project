@@ -2,8 +2,18 @@
 #include <SFML/Graphics.hpp>
 #include <array>
 #include <string>
+#include <vector>
 
 enum class ScoresAction { None}; 
+
+struct ScoreEntry {
+    std::string playerName;
+    int score;
+    
+    bool operator<(const ScoreEntry& other) const {
+        return score > other.score;  // Descending order
+    }
+};
 
 class Scores {
 public:
@@ -26,11 +36,14 @@ private:
     void resetColors();
     void checkHover();
     void centerLabel(Button& b);
+    void loadBestScores();          // Load and sort all best scores from save files
 
     sf::RenderWindow& window;
     std::array<Button, 4> buttons;
     sf::Font font;                // <-- loaded once for all labels
     bool hasFont = false;         // if false, we skip drawing text
+    
+    std::vector<ScoreEntry> bestScores;  // Stores all best scores in descending order
 
     // Colors
     sf::Color bgColor{30, 20, 50};
