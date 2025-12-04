@@ -1,7 +1,75 @@
 #include "game.hpp"
 #include <iostream>
+#include <fstream>
 
-Game::Game(sf::RenderWindow& win) : window(win) {
+static void charToGroundType(char c, GroundType& gt, CropType& ct) {
+    gt = GroundType::Empty;
+    ct = CropType::None;
+
+    switch (c) {
+    case 'T': 
+        gt = GroundType::Soil;
+        break;
+        // Seed boxes
+            case '1':   // tomato seeds
+                gt = GroundType::Seeds;
+                ct = CropType::Tomato;
+                break;
+            case '2':   // corn seeds
+                gt = GroundType::Seeds;
+                ct = CropType::Corn;
+                break;
+            case '3':   // potato seeds
+                gt = GroundType::Seeds;
+                ct = CropType::Potato;
+                break;
+            case '4':   // carrot seeds
+                gt = GroundType::Seeds;
+                ct = CropType::Carrot;
+                break;
+            case '5':   // lettuce seeds
+                gt = GroundType::Seeds;
+                ct = CropType::Lettuce;
+                break;
+
+    case 'G': 
+         gt = GroundType::Seeds;
+        break;
+    case 'E': 
+        gt = GroundType::Water;
+        break;
+    case 'S': 
+        gt = GroundType::Sun;
+        break;
+    case 'M': 
+        gt = GroundType::Market;
+        break;
+    case 'P': 
+        gt = GroundType::Trash;
+        break;
+    case 'F': 
+        gt = GroundType::Empty;
+        break;
+    default :  
+        gt = GroundType::Empty;
+        break;
+    }
+}
+
+static const char* cropName(CropType c) {
+    switch (c) {
+    case CropType::Carrot:  return "Carrot";
+    case CropType::Tomato:  return "Tomato";
+    case CropType::Lettuce: return "Lettuce";
+    case CropType::Corn:    return "Corn";
+    case CropType::Potato:  return "Potato";
+    case CropType::None:
+    default:
+        return "None";
+    }
+}
+
+Game::Game(sf::RenderWindow& win, int levelID) : window(win) {
 
     // --------------------------------------------------
     // 1) FONT
@@ -44,9 +112,9 @@ Game::Game(sf::RenderWindow& win) : window(win) {
     const float winW = static_cast<float>(window.getSize().x);
     const float winH = static_cast<float>(window.getSize().y);
 
-    const float topBarHeight    = 80.f;  // coloured strip at the top
-    const float bottomBarHeight = 0.f;   // set to 0 for now, no MARKER bar
-    const float sideBarWidth    = 0.f;   // no gameplay side bars now
+    const float topBarHeight = 80.f; // coloured strip at the top
+    const float bottomBarHeight = 0.f; // set to 0 for now, no MARKER bar
+    const float sideBarWidth = 0.f; // no gameplay side bars now
 
     // --------------------------------------------------
     // 4) TOP BAR + INFO BOARD (You / Timer / AI)
@@ -154,84 +222,95 @@ Game::Game(sf::RenderWindow& win) : window(win) {
                 gridOrigin.y + row * tileHeight + 1.f
             });
 
-            t.type        = GroundType::Empty;        // will become PlayerSoil/AISoil later
-            t.walkable    = true;                     // player can walk on all ground
-            t.state       = TileState::Empty;         // nothing planted yet
+            t.type = GroundType::Empty; // will become Soil later
+            t.walkable = true; // player can walk on all ground
+            t.state = TileState::Empty; // nothing planted yet
             t.growthTimer = 0.f;
             t.rect.setFillColor(sf::Color(90, 60, 30)); // brown soil colour
         }
     }
 
     // --------------------------------------------------
-    // 9) OPTIONAL CENTER LINE (only visual, no collision)
+    // 9) LOAD LEVEL LAYOUT FROM TEXT FILE
     // --------------------------------------------------
-        centerPath.setSize({4.f, playHeight});
-        centerPath.setPosition(winW / 2.f - 2.f, playTop);
-        centerPath.setFillColor(sf::Color(255, 0, 0)); // red line
+    std::string levelPath = "res/levels/level" + std::to_string(levelID) + ".txt";
 
-    int midCol = gridCols / 2; 
-    int bottomRow = gridRows - 1; // last row (market + sun)
-    int topFarmRow = 1; // row 1 to 3 farm zone
-    int bottomFarmRow = 3;
+    centerPath.setSize({4.f, playHeight});
+    centerPath.setPosition(winW / 2.f - 2.f, playTop);
+    centerPath.setFillColor(sf::Color(255, 0, 0)); // red line
+    
+    std::ifstream in(levelPath);
+    if (!in) {
+        std::cerr << "[ERROR] Cannot open level file: " << levelPath << "\n";
+        // fall back: keep default GroundType::Empty for all tiles
+    } else {
+        std::vector<std::string> lines;
+        std::string line;
+        while (std::getline(in, line)) {
+            if (!line.empty() && line.back() == '\r') // Windows line endings
+                line.pop_back();
+            if ((int)line.size() >= gridCols)
+                lines.push_back(line.substr(0, gridCols));
+        }
 
-    for (int row = 0; row < gridRows; ++row) {
-        for (int col = 0; col < gridCols; ++col) {
+        if ((int)lines.size() < gridRows) {
+            std::cerr << "[WARN] Level file has fewer than " << gridRows << " rows\n";
+        } else {
+            for (int row = 0; row < gridRows; ++row) {
+                for (int col = 0; col < gridCols; ++col) {
+                    int idx = row * gridCols + col;
+                    FarmTile& t = farm[idx];
 
-            int idx = row * gridCols + col;
-            FarmTile& t = farm[idx];
+                    char c = lines[row][col];
+                    GroundType gt;
+                    CropType ct;
+                    charToGroundType(c, gt, ct);
 
-            // 8.1 Seeds 
-            if ((row >= 0 && row <= bottomFarmRow && (col == 0 || col == gridCols -1)) || (row == 0 && (col == 1 || col == gridCols -2))) 
-            {
-                t.type = GroundType::Seeds;
-                t.rect.setFillColor(sf::Color(255, 128, 0)); // orange
-                continue;
-            }
+                    t.type = gt;
+                    t.crop = ct;
 
-            // 8.2 Farm zone "soil"
-            bool playerSide = (col > 1 && col < midCol-1);          // columns 2..4
-            bool aiSide = (col > midCol && col < gridCols-2); // columns 7..9
-
-            if (row >= topFarmRow && row <= bottomFarmRow && (playerSide || aiSide)) 
-            {
-                t.type = GroundType::Soil;
-                t.rect.setFillColor(sf::Color(102, 51, 0));  // dark brown
-                continue;
-            }
-
-            // 8.3 Water 
-            if (row == bottomFarmRow + 1 && (col == 0 || col == gridCols - 1))
-            {
-                t.type = GroundType::Water;
-                t.rect.setFillColor(sf::Color(153, 204, 255)); // light blue
-                continue;
-            }
-
-            //  8.4 Sun
-            if (row == bottomRow && (col == 0 || col == gridCols - 1))
-            {
-                t.type = GroundType::Sun;
-                t.rect.setFillColor(sf::Color(255, 255, 0)); // yellow
-                continue;
-            }
-
-            // 8.5 Market
-            if (row == bottomRow &&  col >= 3 && col <= gridCols - 4 )
-            {
-                t.type = GroundType::Market;
-                t.rect.setFillColor(sf::Color(51, 102, 0)); // dark green
-                continue;
-            }
-
-            // 8.6 Trash
-            if (row == bottomRow && (col == 1 || col == gridCols - 2))
-            {
-                t.type = GroundType::Trash;
-                t.rect.setFillColor(sf::Color(128, 128, 128)); // grey
-                continue;
+                    // choose color based on type
+                    switch (gt) {
+                    case GroundType::Soil:
+                        t.rect.setFillColor(sf::Color(102, 51, 0));       // dark soil
+                        t.walkable = true;
+                        break;
+                    case GroundType::Seeds:
+                        t.rect.setFillColor(sf::Color(255, 128, 0));      // orange
+                        t.walkable = true;
+                        break;
+                    case GroundType::Water:
+                        t.rect.setFillColor(sf::Color(153, 204, 255));    // light blue
+                        t.walkable = true;
+                        break;
+                    case GroundType::Sun:
+                        t.rect.setFillColor(sf::Color(255, 255, 0));      // yellow
+                        t.walkable = true;
+                        break;
+                    case GroundType::Market:
+                        t.rect.setFillColor(sf::Color(51, 102, 0));       // dark green
+                        t.walkable = true;
+                        break;
+                    case GroundType::Trash:
+                        t.rect.setFillColor(sf::Color(128, 128, 128));       // grey
+                        t.walkable = true;
+                        break;
+                    case GroundType::Empty:
+                    default:
+                        t.rect.setFillColor(sf::Color(40, 40, 60));       // floor
+                        t.walkable = true; // or false if you want
+                        break;
+                    }
+                }
             }
         }
     }
+
+    tomatoTexture.loadFromFile("res/crops/tomato.png");
+    cornTexture.loadFromFile("res/crops/corn.png"); 
+    carrotTexture.loadFromFile("res/crops/carrot.png");
+    lettuceTexture.loadFromFile("res/crops/lettuce.png");
+    potatoTexture.loadFromFile("res/crops/potato.png");
 
     // --------------------------------------------------
     // 10) FARMER POSITIONS
@@ -253,6 +332,18 @@ Game::Game(sf::RenderWindow& win) : window(win) {
     aiFarmer.body.setFillColor(sf::Color::Red);
     aiFarmer.body.setPosition(aiStart);
     aiFarmer.score = 0;
+}
+
+sf::Texture& Game::seedTexture(CropType ct) {
+    switch (ct) {
+        case CropType::Tomato: return tomatoTexture;
+        case CropType::Corn:   return cornTexture;
+        case CropType::Carrot: return carrotTexture;
+        case CropType::Lettuce:return lettuceTexture;
+        case CropType::Potato: return potatoTexture;
+        default: 
+            return tomatoTexture; // default texture
+    }
 }
 
 void Game::handleEvent(const sf::Event& e) {
@@ -304,8 +395,9 @@ void Game::handleEvent(const sf::Event& e) {
                 if (tile.type == GroundType::Seeds && !playerFarmer.hasSeed) {
                     // take seed
                     //tile.action = ActionType::TakeSeed;
+                    playerFarmer.carriedSeed = tile.crop;
                     playerFarmer.hasSeed = true; 
-                    std::cout << "Seed taken\n";
+                    std::cout << cropName(tile.crop) << " seed taken\n";
                     break;
                 }
                 if (tile.type == GroundType::Water && !playerFarmer.hasWater) {
@@ -325,12 +417,13 @@ void Game::handleEvent(const sf::Event& e) {
                 if (tile.state == TileState::Grown && tile.type == GroundType::Soil) {
                     // harvest
                     tile.state = TileState::Empty;
+                    playerFarmer.carriedSeed = tile.crop;
                     tile.growthTimer = 0.f;
                     tile.rect.setFillColor(sf::Color(102, 51, 0)); // back to soil
                     playerFarmer.score += 1;
                     //tile.action = ActionType::Harvest;
                     playerFarmer.hasProduct = true;
-                    std::cout << "Crop harvested\n";
+                    std::cout << cropName(tile.crop) << " harvested\n";
                     break;
                 } 
                 break;
@@ -349,8 +442,10 @@ void Game::handleEvent(const sf::Event& e) {
                     // plant seed
                     tile.state = TileState::Seeded;
                     tile.growthTimer = 0.f;
-                    playerFarmer.hasSeed = false;
-                    std::cout << "Seed planted\n";
+                    tile.crop = playerFarmer.carriedSeed;
+                    playerFarmer.hasSeed = false;   
+                    playerFarmer.carriedSeed = CropType::None;
+                    std::cout << cropName(tile.crop) << " seed planted\n";
                     //tile.action = ActionType::Plant;
                     tile.rect.setFillColor(sf::Color(51, 25, 0)); // darker soil
                     break;
@@ -360,7 +455,7 @@ void Game::handleEvent(const sf::Event& e) {
                     tile.state = TileState::Watered;
                     tile.growthTimer = 0.f;
                     playerFarmer.hasWater = false;
-                    std::cout << "Plant watered\n";
+                    std::cout << cropName(tile.crop) << " plant watered\n";
                     //tile.action = ActionType::DropWater;
                     break;
                 }
@@ -377,14 +472,16 @@ void Game::handleEvent(const sf::Event& e) {
                     // sell product
                     playerFarmer.score += 2; // selling gives 2 points
                     playerFarmer.hasProduct = false;
-                    std::cout << "Product sold\n";
+                    std::cout << cropName(playerFarmer.carriedSeed) << " sold\n";
+                    playerFarmer.carriedSeed = CropType::None;
                     //tile.action = ActionType::DropProduct;
                     break;
                 }
                 if (tile.type == GroundType::Trash) {
                     if (playerFarmer.hasSeed) {
                         playerFarmer.hasSeed = false;
-                        std::cout << "Seed discarded\n";
+                        std::cout << cropName(playerFarmer.carriedSeed) << " seed discarded\n";
+                        playerFarmer.carriedSeed = CropType::None;
                         break;
                     }
                     if (playerFarmer.hasWater) {
@@ -397,16 +494,16 @@ void Game::handleEvent(const sf::Event& e) {
                         std::cout << "Sun discarded\n";
                         break;
                     }
-                    // if (playerFarmer.hasProduct) {
-                    //     playerFarmer.hasProduct = false;
-                    //     std::cout << "Product discarded\n";
-                    //     break;
-                    // }
+                    if (playerFarmer.hasProduct) {
+                        playerFarmer.hasProduct = false;
+                        std::cout << cropName(playerFarmer.carriedSeed) << "  discarded\n";
+                        playerFarmer.carriedSeed = CropType::None;
+                        break;
+                    }
                 }
         }
     }  
 }
-
 
 void Game::update(float dt) {
     if (PauseGame || EndGame) return; // don't update when game is paused
@@ -501,9 +598,9 @@ void Game::update(float dt) {
     for (auto& tile : farm) {
         if (tile.type == GroundType::Soil && tile.state != TileState::Empty && tile.state != TileState::Grown) {
             tile.growthTimer += dt;
-            if (tile.growthTimer > 5.f) { // 5 seconds to grow
+            if (tile.growthTimer > 3.f) { // 3 seconds to grow
                 tile.state = TileState::Grown;
-                tile.rect.setFillColor(sf::Color(204, 0, 102)); // pink = ready
+                tile.rect.setFillColor(sf::Color(102, 51, 0)); // back to brown soil colour 
             }
         }
     }
@@ -531,11 +628,6 @@ void Game::draw() {
     window.clear(sf::Color(20, 40, 60));
 
     window.draw(topBar); // level design
-    window.draw(bottomBar);
-    window.draw(leftBar);
-    window.draw(rightBar);
-    //window.draw(leftField);
-    //window.draw(rightField);
     window.draw(centerPath);
 
     window.draw(backButton.box); // HUD / TASKS
@@ -553,10 +645,24 @@ void Game::draw() {
     }
 
     // Farm
-    for (auto& tile : farm)
+    for (auto& tile : farm) {
         window.draw(tile.rect);
 
-    // Farmes
+        //Seed box icons
+        if ((tile.type == GroundType::Seeds && tile.crop != CropType::None) || (tile.type == GroundType::Soil && tile.state == TileState::Grown && tile.crop != CropType::None)) {
+            sf::Sprite cropSprite;
+            cropSprite.setTexture(seedTexture(tile.crop));
+            cropSprite.setPosition(tile.rect.getPosition());
+
+            // scale down the sprite to fit in tile
+            auto texSize = cropSprite.getTexture()->getSize();
+            auto tileSize = tile.rect.getSize();
+            cropSprite.setScale( tileSize.x / texSize.x, tileSize.y/ texSize.y);
+            window.draw(cropSprite);
+        }
+    }
+
+    // Farmers
     window.draw(playerFarmer.body);
     window.draw(aiFarmer.body);
 

@@ -13,6 +13,8 @@
 enum class Screen { Menu, Game, Level, Settings, Map, Scores, Account, GameSettings, LevelSettings };
 
 std::string CURRENT_PLAYER = "";
+int currentLevel = 1;   // for now: always level 1, later change from LevelSettings / Map
+
 
 
 int main() {
@@ -107,37 +109,48 @@ int main() {
             } break;
 
             case Screen::Game: {
+                if (!game) {
+                    // safety: if somehow we reached Game without a game instance
+                    game = new Game(window, currentLevel);
+                }
                 game->update(dt);
                 game->draw();
-                
+                            
                 GameAction b = game->getAction();
                 if (b != GameAction::None) {
                     if (b == GameAction::Back) screen = Screen::GameSettings;
-                    if (b == GameAction::Pause);
-                    if (b == GameAction::Play) {
-                        delete game;
-                        game = new Game(window);
+                    else if (b == GameAction::Pause);
+                    else if (b == GameAction::Play) {   // "Play again" from end popup
+                        if (game) {
+                            delete game;
+                            game = nullptr;
+                        }
+                        game = new Game(window, currentLevel);
                         screen = Screen::Game;
                     }
                     game->clearAction();
                 }
-            }    break;
+            } break;
 
             case Screen::GameSettings: {
                 gameSettings.draw();
 
                 GameSetAction a = gameSettings.getAction();
                 if (a != GameSetAction::None) {
-                    if (a == GameSetAction::NewGame && game == nullptr) {
-                        // later: reset game state if needed
-                        delete game;
-                        game = new Game(window);
-                        screen = Screen::Game;  
+                    if (a == GameSetAction::NewGame) {
+                        if (game) {
+                            delete game;
+                            game = nullptr;
+                        }
+                        game = new Game(window, currentLevel); //later add +1 if level btw 1 and 3 else loop level 4
+                        screen = Screen::Game;
                     }
                     else if (a == GameSetAction::PlayAgain) {
-                        // same for now: go to Game
-                        delete game;
-                        game = new Game(window);
+                        if (game) {
+                            delete game;
+                            game = nullptr;
+                        }
+                        game = new Game(window, currentLevel);
                         screen = Screen::Game;
                     }
                     else if (a == GameSetAction::Account) {

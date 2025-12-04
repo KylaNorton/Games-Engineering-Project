@@ -5,6 +5,9 @@
 //different game screen changes
 enum class GameAction { None, Back, Pause, Play};
 
+//crop types
+enum class CropType { None, Carrot, Tomato, Lettuce, Corn, Potato };
+
 // State of a tile
 enum class TileState { Empty, Grown, Seeded, Watered, Suned, Marketed };
 
@@ -19,6 +22,7 @@ struct FarmTile {
     //sf::RectangleShape rightField;
     TileState state = TileState::Empty;
     GroundType type = GroundType::Empty;
+    CropType crop = CropType::None; 
     //ActionType action = ActionType::None;
     float growthTimer = 0.f;
     bool walkable = false;
@@ -33,11 +37,12 @@ struct Farmer {
     bool hasWater = false;
     bool hasSun = false;
     bool hasProduct = false;
+    CropType carriedSeed = CropType::None;
 };
 
 class Game {
 public:
-    explicit Game(sf::RenderWindow& window);
+    explicit Game(sf::RenderWindow& window, int levelID = 1);
 
     void handleEvent(const sf::Event& e);
     void update(float dt);
@@ -102,6 +107,15 @@ private:
     // Farmers
     Farmer playerFarmer;
     Farmer aiFarmer;
+
+    //Crop textures
+    sf::Texture carrotTexture;
+    sf::Texture tomatoTexture;
+    sf::Texture lettuceTexture;
+    sf::Texture cornTexture;
+    sf::Texture potatoTexture;
+
+    sf::Texture& seedTexture(CropType ct);
 
     // Texts for HUD
     sf::Text playerScoreText;
