@@ -25,14 +25,11 @@ void PlayerSave::saveToFile() const {
     if (!file) return;
 
     file << "Name: " << name << "\n";
-    file << "LevelsCompleted: " << levelsCompleted << "\n";
-
-    file << "HighScores: ";
+    
+    // Write scores for each level (1-indexed)
     for (size_t i = 0; i < highScores.size(); i++) {
-        file << highScores[i];
-        if (i != highScores.size() - 1) file << ", ";
+        file << (i + 1) << ": " << highScores[i] << "\n";
     }
-    file << "\n";
 }
 
 /* ----------------------------------------------------- */
@@ -40,20 +37,29 @@ bool PlayerSave::loadFromFile() {
     ifstream file(getFilename());
     if (!file) return false;
 
+    highScores.clear();
     string line;
 
     while (getline(file, line)) {
-        if (line.rfind("LevelsCompleted:", 0) == 0) {
-            levelsCompleted = stoi(line.substr(17));
+        if (line.rfind("Name:", 0) == 0) {
+            // Skip the name; it's already set in constructor
+            continue;
         }
-        else if (line.rfind("HighScores:", 0) == 0) {
-            highScores.clear();
-            string nums = line.substr(12);
-            stringstream ss(nums);
-            string token;
-
-            while (getline(ss, token, ',')) {
-                highScores.push_back(stoi(token));
+        // Parse lines like "1: 100", "2: 50", etc.
+        size_t colonPos = line.find(':');
+        if (colonPos != string::npos) {
+            try {
+                int levelNum = stoi(line.substr(0, colonPos));
+                int score = stoi(line.substr(colonPos + 1));
+                // Ensure the vector is large enough
+                while ((int)highScores.size() < levelNum) {
+                    highScores.push_back(0);
+                }
+                if (levelNum > 0) {
+                    highScores[levelNum - 1] = score; // Store at 0-based index
+                }
+            } catch (...) {
+                // Skip malformed lines
             }
         }
     }
@@ -83,6 +89,9 @@ vector<string> PlayerSave::loadPlayerList() {
 /* ----------------------------------------------------- */
 void PlayerSave::setActivePlayer(const PlayerSave& ps) {
     activePlayer = ps;
+    // Load the player's file immediately so `activePlayer` contains
+    // the persisted high scores and other data.
+    activePlayer.loadFromFile();
 }
 
 /* ----------------------------------------------------- */
@@ -202,8 +211,10 @@ void PlayerSave::createNewPlayer(const std::string& playerName)
     }
 
     saveFile << "Name: " << playerName << "\n";
-    saveFile << "LevelsCompleted: 0\n";
-    saveFile << "HighScores: 0, 0, 0, 0, 0\n";
+    saveFile << "1: 0\n";
+    saveFile << "2: 0\n";
+    saveFile << "3: 0\n";
+    saveFile << "4: 0\n";
     saveFile.close();
 
     // ADD TO PLAYERS LIST

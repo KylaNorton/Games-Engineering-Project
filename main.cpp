@@ -63,7 +63,6 @@ int main() {
                     break;
                 case Screen::Account:
                     account.handleEvent(e);
-                    if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) screen = Screen::GameSettings;
                     break;
                 case Screen::Level:
                     level.handleEvent(e);
@@ -80,7 +79,7 @@ int main() {
                     break;
                 case Screen::Map:
                     map.handleEvent(e);
-                    if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) screen = Screen::LevelSettings;
+                    if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) screen = Screen::Account;
                     break;
                 case Screen::Scores:
                     scores.handleEvent(e);
@@ -101,7 +100,7 @@ int main() {
                 // read menu action → change screen
                 MenuAction a = menu.getAction();
                 if (a != MenuAction::None) {
-                    if (a == MenuAction::Start)     screen = Screen::GameSettings;
+                    if (a == MenuAction::Start)     screen = Screen::Account;
                     else if (a == MenuAction::Level)   screen = Screen::LevelSettings;
                     else if (a == MenuAction::Settings)screen = Screen::Settings;
                     menu.clearAction();
@@ -162,6 +161,27 @@ int main() {
 
             case Screen::Account: {
                 account.draw();
+
+                AccountAction a = account.getAction();
+                if (a != AccountAction::None) {
+                    if (a == AccountAction::SelectPlayer) {
+                        // Player selected an existing account → go to Map
+                        screen = Screen::Map;
+                    }
+                    account.clearAction();
+                }
+
+                // If a new player was just created → go to Level 1
+                if (account.newPlayerCreated()) {
+                    currentLevel = 1;
+                    if (game) {
+                        delete game;
+                        game = nullptr;
+                    }
+                    game = new Game(window, currentLevel);
+                    screen = Screen::Game;
+                    account.resetNewPlayerFlag();
+                }
             } break;
 
             case Screen::Map: {

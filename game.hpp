@@ -15,6 +15,22 @@ enum class ActionType { None, Plant, Harvest, TakeSeed, TakeWater, TakeSun, Drop
 
 enum class GroundType { Empty, Soil, Wall, Market, Seeds, Water, Sun, Trash };
 
+// --- Add near the Farmer / Request definitions in game.hpp ---
+// AI State machine for the AI farmer
+enum class AIState {
+    SelectGoal,
+    GoToSeeds,
+    PickSeeds,
+    GoToPlant,
+    Plant,
+    WaitForGrowth,
+    Harvest,
+    GoToMarket,
+    Sell,
+    Idle
+};
+
+
 // One soil tile in the farm
 struct FarmTile {
     sf::RectangleShape rect;
@@ -148,6 +164,23 @@ private:
     int numRequestsForLevel(int level) const;
     Request makeRandomRequest(int level);
     std::string requestToString(const Request& r) const;
+
+        // --- AI-related members ---
+    AIState aiState = AIState::SelectGoal;
+    CropType aiTargetCrop = CropType::None;   // what the AI is currently trying to produce
+    std::vector<int> aiPath;                  // sequence of tile indices (A* result)
+    int aiPathIndex = 0;                      // next waypoint index in aiPath
+    float aiMaxSpeed = 150.f;                 // AI movement speed
+    float aiArriveThreshold = 10.f;           // pixels to consider 'arrived' at a waypoint
+
+    // AI helpers
+    int tileIndexFromPos(const sf::Vector2f& pos) const;
+    sf::Vector2f tileCenter(int index) const;
+    bool isTileWalkable(int index) const;
+
+    // A* pathfinding
+    std::vector<int> findPathAStar(int startIdx, int goalIdx);
+
 
 };
 

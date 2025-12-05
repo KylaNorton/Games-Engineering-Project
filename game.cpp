@@ -3,6 +3,142 @@
 #include <fstream>
 #include <random>
 
+#include <queue>
+#include <unordered_map>
+#include <cmath>
+#include <limits>
+#include <algorithm>
+
+
+
+// --- Convert position to tile index (or -1 if outside) ---
+int Game::tileIndexFromPos(const sf::Vector2f& pos) const {
+    // pos relative to gridOrigin
+    float relX = pos.x - gridOrigin.x;
+    float relY = pos.y - gridOrigin.y;
+    if (relX < 0 || relY < 0) return -1;
+
+    // compute tile size from your existing layout:
+    float fullWidth = static_cast<float>(window.getSize().x);
+    float playTop = board.box.getPosition().y + board.box.getSize().y;
+    float playLeft = 0.f;
+    float playRight = fullWidth;
+    float playBottom = static_cast<float>(window.getSize().y);
+
+    float playWidth = playRight - playLeft;
+    float playHeight = playBottom - playTop;
+
+    float tileW = playWidth / gridCols;
+    float tileH = playHeight / gridRows;
+
+    int col = static_cast<int>(relX / tileW);
+    int row = static_cast<int>(relY / tileH);
+
+    if (col < 0 || col >= gridCols || row < 0 || row >= gridRows) return -1;
+    return row * gridCols + col;
+}
+
+// --- Tile center coordinates ---
+sf::Vector2f Game::tileCenter(int index) const {
+    if (index < 0 || index >= static_cast<int>(farm.size())) return {0.f, 0.f};
+    const FarmTile& t = farm[index];
+    auto pos = t.rect.getPosition();
+    auto size = t.rect.getSize();
+    return { pos.x + size.x * 0.5f, pos.y + size.y * 0.5f };
+}
+
+bool Game::isTileWalkable(int index) const {
+    if (index < 0 || index >= static_cast<int>(farm.size())) return false;
+    return farm[index].walkable;
+}
+
+
+// Simple A* on the grid using Manhattan distance
+std::vector<int> Game::findPathAStar(int startIdx, int goalIdx) {
+    std::vector<int> emptyPath;
+    if (startIdx < 0 || goalIdx < 0) return emptyPath;
+    if (startIdx == goalIdx) return {startIdx};
+
+    auto heuristic = [&](int a, int b)->int {
+        int ax = a % gridCols, ay = a / gridCols;
+        int bx = b % gridCols, by = b / gridCols;
+        return std::abs(ax - bx) + std::abs(ay - by);
+    };
+
+    struct Node {
+        int idx;
+        int f;
+        int g;
+        int cameFrom;
+    };
+
+    const int N = gridRows * gridCols;
+    const int INF = std::numeric_limits<int>::max();
+
+    std::vector<int> gScore(N, INF);
+    std::vector<int> fScore(N, INF);
+    std::vector<int> cameFrom(N, -1);
+    std::vector<char> closed(N, 0);
+
+    auto pushToOpen = [&](std::priority_queue<std::pair<int,int>,
+                        std::vector<std::pair<int,int>>, std::greater<>> &pq, int idx, int f){
+        pq.push({f, idx});
+    };
+
+    std::priority_queue<std::pair<int,int>,
+        std::vector<std::pair<int,int>>, std::greater<>> openSet;
+
+    gScore[startIdx] = 0;
+    fScore[startIdx] = heuristic(startIdx, goalIdx);
+    pushToOpen(openSet, startIdx, fScore[startIdx]);
+
+    while (!openSet.empty()) {
+        int current = openSet.top().second;
+        openSet.pop();
+
+        if (closed[current]) continue;
+        if (current == goalIdx) {
+            // reconstruct path
+            std::vector<int> path;
+            int cur = current;
+            while (cur != -1) {
+                path.push_back(cur);
+                cur = cameFrom[cur];
+            }
+            std::reverse(path.begin(), path.end());
+            return path;
+        }
+        closed[current] = 1;
+
+        int cx = current % gridCols;
+        int cy = current / gridCols;
+
+        // neighbors 4-dir
+        const int dx[4] = {1,-1,0,0};
+        const int dy[4] = {0,0,1,-1};
+
+        for (int k = 0; k < 4; ++k) {
+            int nx = cx + dx[k];
+            int ny = cy + dy[k];
+            if (nx < 0 || nx >= gridCols || ny < 0 || ny >= gridRows) continue;
+            int nidx = ny * gridCols + nx;
+            if (!isTileWalkable(nidx)) continue;
+
+            int tentativeG = gScore[current] + 1; // cost = 1 per step
+            if (tentativeG < gScore[nidx]) {
+                cameFrom[nidx] = current;
+                gScore[nidx] = tentativeG;
+                fScore[nidx] = tentativeG + heuristic(nidx, goalIdx);
+                pushToOpen(openSet, nidx, fScore[nidx]);
+            }
+        }
+    }
+
+    // no path found
+    return emptyPath;
+}
+
+
 // Helper to convert from char in level file to GroundType and CropType
 static void charToGroundType(char c, GroundType& gt, CropType& ct) {
     gt = GroundType::Empty;
@@ -805,6 +941,295 @@ void Game::update(float dt) {
         playerScoreText.setString("You: " + std::to_string(playerFarmer.score));
         aiScoreText.setString("AI: " + std::to_string(aiFarmer.score));
     }
+
+    // ----- AI state machine & path-following (call every frame when not paused) -----
+auto aiPos = aiFarmer.body.getPosition();
+
+// Helper to set path to a tile index
+auto setAIPathToTile = [&](int tileIdx){
+    int start = tileIndexFromPos(aiPos);
+    if (start < 0) {
+        // fallback: compute from current position -> approximate nearest tile
+        // pick the tile under ai
+        start = tileIndexFromPos(aiFarmer.body.getPosition());
+    }
+    aiPath = findPathAStar(start, tileIdx);
+    aiPathIndex = 0;
+};
+
+auto moveAIAlongPath = [&](float dt)->bool {
+    if (aiPath.empty() || aiPathIndex >= static_cast<int>(aiPath.size())) return false;
+    sf::Vector2f target = tileCenter(aiPath[aiPathIndex]);
+    sf::Vector2f dir = target - aiPos;
+    float dist = std::sqrt(dir.x*dir.x + dir.y*dir.y);
+    if (dist < aiArriveThreshold) { // reached waypoint
+        aiPathIndex++;
+        return true;
+    }
+    // normalise and apply speed (seek)
+    dir /= dist;
+    sf::Vector2f vel = dir * (aiMaxSpeed * dt);
+    // move ai, but keep on right side of centerPath wall as before
+    sf::FloatRect wall = centerPath.getGlobalBounds();
+    float ar = aiFarmer.body.getRadius();
+    sf::Vector2f next = aiPos + vel;
+    sf::FloatRect aiCircle(next.x - ar, next.y - ar, 2*ar, 2*ar);
+    // ensure inside play area and right of wall (reuse your earlier checks)
+    float playTop = board.box.getPosition().y + board.box.getSize().y;
+    float playLeft = 0.f;
+    float playRight = static_cast<float>(window.getSize().x);
+    float playBottom = static_cast<float>(window.getSize().y);
+
+    sf::FloatRect playArea(playLeft, playTop, playRight - playLeft, playBottom - playTop);
+    bool aiInside =
+        playArea.contains(aiCircle.left, aiCircle.top) &&
+        playArea.contains(aiCircle.left + aiCircle.width, aiCircle.top) &&
+        playArea.contains(aiCircle.left, aiCircle.top + aiCircle.height) &&
+        playArea.contains(aiCircle.left + aiCircle.width, aiCircle.top + aiCircle.height);
+
+    bool rightOfWall = (next.x - ar) >= (wall.left + wall.width);
+
+    if (aiInside && rightOfWall) {
+        aiFarmer.body.setPosition(next);
+    } else {
+        // cannot move directly; clear path so next iteration recalculates
+        aiPath.clear();
+    }
+    return true;
+};
+
+// AI decision helper: choose a crop requested (highest remaining qty) or nearest seed if none
+auto chooseTargetCrop = [&]()->CropType {
+    if (currentRequestIndex >= 0 && currentRequestIndex < static_cast<int>(requests.size())) {
+        Request& r = requests[currentRequestIndex];
+        // choose highest qty remaining
+        int bestQty = 0;
+        CropType best = CropType::None;
+        for (auto &it : r.items) {
+            if (it.second > bestQty) { bestQty = it.second; best = it.first; }
+        }
+        if (best != CropType::None) return best;
+    }
+    // fallback: pick first allowed crop that exists in seed boxes
+    for (int i = 0; i < static_cast<int>(farm.size()); ++i) {
+        if (farm[i].type == GroundType::Seeds && farm[i].crop != CropType::None) {
+            return farm[i].crop;
+        }
+    }
+    return CropType::None;
+};
+
+// State machine transitions & actions
+switch (aiState) {
+    case AIState::SelectGoal: {
+        aiTargetCrop = chooseTargetCrop();
+        if (aiTargetCrop == CropType::None) {
+            aiState = AIState::Idle;
+            break;
+        }
+        // find nearest seed tile for that crop
+        int bestIdx = -1; float bestDist = 1e9;
+        for (int i = 0; i < static_cast<int>(farm.size()); ++i) {
+            if (farm[i].type == GroundType::Seeds && farm[i].crop == aiTargetCrop) {
+                float d = std::hypot(tileCenter(i).x - aiPos.x, tileCenter(i).y - aiPos.y);
+                if (d < bestDist) { bestDist = d; bestIdx = i; }
+            }
+        }
+        if (bestIdx >= 0) {
+            setAIPathToTile(bestIdx);
+            aiState = AIState::GoToSeeds;
+        } else {
+            // no seeds available: idle for a moment
+            aiState = AIState::Idle;
+        }
+        break;
+    }
+
+    case AIState::GoToSeeds: {
+        if (aiPath.empty()) {
+            // recompute path to nearest seed tile
+            int targetIdx = -1; float bestDist = 1e9;
+            for (int i = 0; i < static_cast<int>(farm.size()); ++i) {
+                if (farm[i].type == GroundType::Seeds && farm[i].crop == aiTargetCrop) {
+                    float d = std::hypot(tileCenter(i).x - aiPos.x, tileCenter(i).y - aiPos.y);
+                    if (d < bestDist) { bestDist = d; targetIdx = i; }
+                }
+            }
+            if (targetIdx >= 0) setAIPathToTile(targetIdx);
+            else aiState = AIState::SelectGoal;
+            break;
+        }
+        // follow the path
+        moveAIAlongPath(dt);
+        // If close enough to final goal tile, simulate 'take seed' like player `T` does
+        if (aiPathIndex >= static_cast<int>(aiPath.size())) {
+            int finalTile = aiPath.empty() ? -1 : aiPath.back();
+            if (finalTile >= 0) {
+                // perform take seed
+                if (farm[finalTile].type == GroundType::Seeds && !aiFarmer.hasSeed && farm[finalTile].crop == aiTargetCrop) {
+                    aiFarmer.carriedSeed = farm[finalTile].crop;
+                    aiFarmer.hasSeed = true;
+                    // optionally: leave the seed box as is (multiple seeds) or mark as taken
+                    std::cout << "AI: took " << cropName(aiFarmer.carriedSeed) << " seed\n";
+                    aiState = AIState::GoToPlant;
+                    // Choose planting spot: nearest soil empty tile
+                    int plantIdx = -1; float bd = 1e9;
+                    for (int i = 0; i < static_cast<int>(farm.size()); ++i) {
+                        if (farm[i].type == GroundType::Soil && farm[i].state == TileState::Empty) {
+                            float d = std::hypot(tileCenter(i).x - aiPos.x, tileCenter(i).y - aiPos.y);
+                            if (d < bd) { bd = d; plantIdx = i; }
+                        }
+                    }
+                    if (plantIdx >= 0) setAIPathToTile(plantIdx);
+                    else aiState = AIState::Idle;
+                } else {
+                    aiState = AIState::SelectGoal;
+                }
+            } else {
+                aiState = AIState::SelectGoal;
+            }
+        }
+        break;
+    }
+
+    case AIState::GoToPlant: {
+        if (aiPath.empty()) {
+            // no available planting tile: return to select
+            aiState = AIState::SelectGoal;
+            break;
+        }
+        moveAIAlongPath(dt);
+        if (aiPathIndex >= static_cast<int>(aiPath.size())) {
+            // arrived at tile: plant if possible
+            int finalTile = aiPath.empty() ? -1 : aiPath.back();
+            if (finalTile >= 0 && aiFarmer.hasSeed && farm[finalTile].type == GroundType::Soil && farm[finalTile].state == TileState::Empty) {
+                farm[finalTile].state = TileState::Seeded;
+                farm[finalTile].growthTimer = 0.f;
+                farm[finalTile].crop = aiFarmer.carriedSeed;
+                aiFarmer.hasSeed = false;
+                aiFarmer.carriedSeed = CropType::None;
+                std::cout << "AI: planted\n";
+                aiState = AIState::WaitForGrowth;
+            } else {
+                aiState = AIState::SelectGoal;
+            }
+        }
+        break;
+    }
+
+    case AIState::WaitForGrowth: {
+        // look for any grown crop of aiTargetCrop to harvest
+        int grownIdx = -1; float bd = 1e9;
+        for (int i = 0; i < static_cast<int>(farm.size()); ++i) {
+            if (farm[i].type == GroundType::Soil && farm[i].state == TileState::Grown && farm[i].crop == aiTargetCrop) {
+                float d = std::hypot(tileCenter(i).x - aiPos.x, tileCenter(i).y - aiPos.y);
+                if (d < bd) { bd = d; grownIdx = i; }
+            }
+        }
+        if (grownIdx >= 0) {
+            setAIPathToTile(grownIdx);
+            aiState = AIState::Harvest;
+        } else {
+            // do nothing this frame; you might let the AI wander or idle
+            // we'll let it remain in WaitForGrowth and recheck next frame
+        }
+        break;
+    }
+
+    case AIState::Harvest: {
+        if (aiPath.empty()) {
+            aiState = AIState::WaitForGrowth;
+            break;
+        }
+        moveAIAlongPath(dt);
+        if (aiPathIndex >= static_cast<int>(aiPath.size())) {
+            int finalTile = aiPath.empty() ? -1 : aiPath.back();
+            if (finalTile >= 0 && farm[finalTile].state == TileState::Grown) {
+                // harvest - mimic player logic
+                farm[finalTile].state = TileState::Empty;
+                aiFarmer.carriedSeed = farm[finalTile].crop;
+                farm[finalTile].growthTimer = 0.f;
+                farm[finalTile].rect.setFillColor(sf::Color(102, 51, 0)); // back to soil
+                aiFarmer.score += 1;
+                aiFarmer.hasProduct = true;
+                std::cout << "AI: harvested " << cropName(aiFarmer.carriedSeed) << "\n";
+                // go to market
+                // find market tile
+                int marketIdx = -1;
+                float bestD = 1e9;
+                for (int i = 0; i < static_cast<int>(farm.size()); ++i) {
+                    if (farm[i].type == GroundType::Market) {
+                        float d = std::hypot(tileCenter(i).x - aiPos.x, tileCenter(i).y - aiPos.y);
+                        if (d < bestD) { bestD = d; marketIdx = i; }
+                    }
+                }
+                if (marketIdx >= 0) { setAIPathToTile(marketIdx); aiState = AIState::GoToMarket; }
+                else aiState = AIState::SelectGoal;
+            } else {
+                aiState = AIState::WaitForGrowth;
+            }
+        }
+        break;
+    }
+
+    case AIState::GoToMarket: {
+        if (aiPath.empty()) { aiState = AIState::SelectGoal; break; }
+        moveAIAlongPath(dt);
+        if (aiPathIndex >= static_cast<int>(aiPath.size())) {
+            int finalTile = aiPath.empty() ? -1 : aiPath.back();
+            if (finalTile >= 0 && farm[finalTile].type == GroundType::Market && aiFarmer.hasProduct) {
+                // sell to current request (reuse your player selling logic)
+                CropType product = aiFarmer.carriedSeed;
+                if (currentRequestIndex >= 0 && currentRequestIndex < static_cast<int>(requests.size())) {
+                    Request& r = requests[currentRequestIndex];
+                    bool completed = false;
+                    for (auto& item : r.items) {
+                        if (item.first == product && item.second > 0) {
+                            item.second -= 1;
+                            completed = true;
+                            aiFarmer.score += 2;
+                            break;
+                        }
+                    }
+                    if (completed) {
+                        std::cout << "AI: delivered " << cropName(product) << " for the request\n";
+                        bool allDone = true;
+                        for (const auto& it : r.items) if (it.second > 0) { allDone = false; break; }
+                        if (allDone) {
+                            currentRequestIndex++;
+                            if (currentRequestIndex < static_cast<int>(requests.size()) && hasFont) {
+                                currentRequestText.setString("Request: " + requestToString(requests[currentRequestIndex]));
+                            } else {
+                                currentRequestText.setString("All requests completed!");
+                            }
+                        }
+                    } else {
+                        std::cout << "AI: wrong product for current request\n";
+                    }
+                }
+                aiFarmer.hasProduct = false;
+                aiFarmer.carriedSeed = CropType::None;
+                aiState = AIState::SelectGoal;
+            } else {
+                aiState = AIState::SelectGoal;
+            }
+        }
+        break;
+    }
+
+    case AIState::Idle:
+    default: {
+        // Simple behaviour: every few seconds re-evaluate
+        static float idleTimer = 0.f;
+        idleTimer += dt;
+        if (idleTimer > 1.0f) {
+            idleTimer = 0.f;
+            aiState = AIState::SelectGoal;
+        }
+        break;
+    }
+} // end switch
+
 }
 
 void Game::draw() {

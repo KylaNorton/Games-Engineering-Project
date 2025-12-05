@@ -13,6 +13,8 @@ public:
     void draw();
     AccountAction getAction() const { return action; }
     void clearAction() { action = AccountAction::None; } // for when you return to menu
+    bool newPlayerCreated() const { return wasNewPlayerCreated; }
+    void resetNewPlayerFlag() { wasNewPlayerCreated = false; }
 private:
     struct PlayerButton {
         sf::RectangleShape box;
@@ -75,6 +77,9 @@ private:
     int renamingIndex = -1; // -1 if not renaming, else index of player being renamed
     std::string renameInput;
     sf::Text renameText;
+
+    // Track if a new player was just created (for routing to Level 1)
+    bool wasNewPlayerCreated = false;
 
     void positionPlayerLabelLeft(PlayerButton& pb);
 

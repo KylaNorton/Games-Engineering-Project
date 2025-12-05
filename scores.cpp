@@ -24,7 +24,7 @@ void Scores::loadBestScores() {
     bestScores.clear();
     
     // Load player list
-    std::ifstream playerList("players.txt");
+    std::ifstream playerList("../../../players.txt");
     if (!playerList.is_open()) {
         std::cerr << "Could not open players.txt\n";
         return;
@@ -38,7 +38,7 @@ void Scores::loadBestScores() {
         filename.erase(filename.find_last_not_of(" \n\r\t") + 1);
         
         // Load save file
-        std::string filePath = "save_files/" + filename;
+        std::string filePath = "../../../save_files/" + filename;
         std::ifstream saveFile(filePath);
         if (!saveFile.is_open()) {
             std::cerr << "Could not open " << filePath << "\n";
@@ -57,25 +57,18 @@ void Scores::loadBestScores() {
                 playerName.erase(playerName.find_last_not_of(" \t") + 1);
             }
             
-            // Extract high scores
-            if (line.rfind("HighScores:", 0) == 0) {
-                std::string scores_str = line.substr(11);
-                std::stringstream ss(scores_str);
-                std::string token;
-                
-                while (std::getline(ss, token, ',')) {
-                    // Trim whitespace
-                    token.erase(0, token.find_first_not_of(" \t"));
-                    token.erase(token.find_last_not_of(" \t") + 1);
-                    
-                    try {
-                        int score = std::stoi(token);
-                        if (score > 0) {  // Only add non-zero scores
-                            bestScores.push_back({playerName, score});
-                        }
-                    } catch (...) {
-                        // Skip invalid numbers
+            // Parse lines like "1: 100", "2: 50", etc.
+            size_t colonPos = line.find(':');
+            if (colonPos != std::string::npos) {
+                try {
+                    int levelNum = std::stoi(line.substr(0, colonPos));
+                    int score = std::stoi(line.substr(colonPos + 1));
+                    // levelNum should be 1-4; only add non-zero scores
+                    if (levelNum > 0 && levelNum <= 4 && score > 0) {
+                        bestScores.push_back({playerName, score});
                     }
+                } catch (...) {
+                    // Skip malformed lines
                 }
             }
         }

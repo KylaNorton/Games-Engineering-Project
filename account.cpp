@@ -244,6 +244,7 @@ void Account::handleEvent(const sf::Event& e)
                 enteringName = false;
                 newNameInput.clear();
                 inputText.setString("");
+                wasNewPlayerCreated = true;  // Flag that a new player was created
                 return;
             }
             else if (e.text.unicode < 128 && std::isalnum(e.text.unicode)) {

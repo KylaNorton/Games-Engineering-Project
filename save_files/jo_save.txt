@@ -1,3 +1,5 @@
 Name: jo
-LevelsCompleted: 0
-HighScores: 0, 0, 0, 0, 0
+1: 30
+2: 0
+3: 21
+4: 0
