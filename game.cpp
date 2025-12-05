@@ -1,7 +1,9 @@
 #include "game.hpp"
 #include <iostream>
 #include <fstream>
+#include <random>
 
+// Helper to convert from char in level file to GroundType and CropType
 static void charToGroundType(char c, GroundType& gt, CropType& ct) {
     gt = GroundType::Empty;
     ct = CropType::None;
@@ -56,6 +58,7 @@ static void charToGroundType(char c, GroundType& gt, CropType& ct) {
     }
 }
 
+// Helper to get crop name as string
 static const char* cropName(CropType c) {
     switch (c) {
     case CropType::Carrot:  return "Carrot";
@@ -69,7 +72,103 @@ static const char* cropName(CropType c) {
     }
 }
 
-Game::Game(sf::RenderWindow& win, int levelID) : window(win) {
+// Convert a Request to a human-readable string
+std::string Game::requestToString(const Request& r) const {
+    if (r.items.empty())
+        return "No request";
+
+    std::string s;
+    for (size_t i = 0; i < r.items.size(); ++i) {
+        CropType ct = r.items[i].first;
+        int qty     = r.items[i].second;
+        if (qty <= 0) continue;  // already fulfilled
+
+        if (!s.empty())
+            s += "  |  ";
+
+        s += std::to_string(qty);
+        s += "x ";
+        s += cropName(ct);
+    }
+    if (s.empty())
+        s = "Completed";
+    return s;
+}
+
+
+/// REQUEST GENERATION ///
+
+// Global RNG for the game file
+static std::mt19937 rng{ std::random_device{}() };
+
+// Which crops are allowed per level
+std::vector<CropType> Game::allowedCropsForLevel(int level) const {
+    switch (level) {
+        case 1:  // level 1 : T, P, Ca
+            return { CropType::Tomato, CropType::Potato, CropType::Carrot };
+        case 2:  // level 2 : T, P, Ca, L
+            return { CropType::Tomato, CropType::Potato, CropType::Carrot, CropType::Lettuce };
+        case 3:  // level 3 : T, P, Ca, L, Co
+        case 4:  // level 4 : same variety, harder numbers
+        default:
+            return { CropType::Tomato, CropType::Potato, CropType::Carrot,
+                     CropType::Lettuce, CropType::Corn };
+    }
+}
+
+// Max quantity per vegetable type, per level
+int Game::maxQtyForLevel(int level) const {
+    switch (level) {
+        case 1: return 3;  // from your examples
+        case 2: return 3;
+        case 3: return 4;
+        case 4: return 5;
+        default: return 5;
+    }
+}
+
+// How many requests per level
+int Game::numRequestsForLevel(int level) const {
+    switch (level) {
+        case 1: return 5;
+        case 2: return 7;
+        case 3: return 9;
+        case 4: return 12;
+        default: return 5;
+    }
+}
+
+// Generate ONE random request respecting all your rules
+Request Game::makeRandomRequest(int level) {
+    Request r;
+
+    auto allowed = allowedCropsForLevel(level);
+    int maxQty   = maxQtyForLevel(level);
+
+    if (allowed.empty()) return r;
+
+    // 1) decide how many different vegetables (1..3, but not more than allowed.size())
+    int maxTypes = static_cast<int>(std::min<size_t>(3, allowed.size()));
+    std::uniform_int_distribution<int> distTypes(1, maxTypes);
+    int k = distTypes(rng);   // number of different crops in this request
+
+    // 2) choose k distinct crops: shuffle then take first k
+    std::shuffle(allowed.begin(), allowed.end(), rng);
+
+    // 3) for each chosen crop, choose a quantity 1..maxQty
+    std::uniform_int_distribution<int> distQty(1, maxQty);
+
+    for (int i = 0; i < k; ++i) {
+        CropType ct = allowed[i];
+        int qty = distQty(rng);
+        r.items.push_back({ct, qty});
+    }
+
+    return r;
+}
+
+
+Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
 
     // --------------------------------------------------
     // 1) FONT
@@ -91,20 +190,20 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win) {
     // BACK BUTTON (top-left)
     backButton.box.setSize({50.f, 50.f});
     backButton.box.setFillColor(sf::Color(0, 0, 0, 0)); // transparent box for click area
-    backButton.box.setPosition({20.f, 20.f});
+    backButton.box.setPosition({20.f, 5.f});
 
     backButton.sprite.setTexture(backTexture);
     backButton.sprite.setScale(0.06f, 0.06f);
-    backButton.sprite.setPosition({25.f, 25.f});
+    backButton.sprite.setPosition({25.f, 10.f});
 
     // PAUSE BUTTON (top-right)
     pauseButton.box.setSize({50.f, 50.f});
     pauseButton.box.setFillColor(sf::Color(0, 0, 0, 0));
-    pauseButton.box.setPosition({window.getSize().x - 70.f, 20.f});
+    pauseButton.box.setPosition({window.getSize().x - 70.f, 5.f});
 
     pauseButton.sprite.setTexture(pauseTexure);
     pauseButton.sprite.setScale(0.08f, 0.08f);
-    pauseButton.sprite.setPosition({window.getSize().x - 65.f, 25.f});
+    pauseButton.sprite.setPosition({window.getSize().x - 65.f, 10.f});
 
     // --------------------------------------------------
     // 3) BASIC WINDOW DIMENSIONS
@@ -128,7 +227,7 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win) {
     // info board rectangle (dark grey, centered)
     board.box.setSize({800.f, 50.f});
     board.box.setFillColor(sf::Color(50, 50, 50)); // dark grey
-    board.box.setPosition({(winW - 800.f) / 2.f, 20.f});
+    board.box.setPosition({(winW - 800.f) / 2.f, 0.f});
 
     // bottom bar is not used now, but we keep the object in case you need it later
     bottomBar.setSize({winW, bottomBarHeight});
@@ -153,14 +252,14 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win) {
         playerScoreText.setCharacterSize(20);
         playerScoreText.setFillColor(sf::Color::White);
         playerScoreText.setString("You: 0");
-        playerScoreText.setPosition(board.box.getPosition().x + 20.f, board.box.getPosition().y + 15.f);
+        playerScoreText.setPosition(board.box.getPosition().x + 20.f, board.box.getPosition().y + 25.f);
 
         // AI score text (right)
         aiScoreText.setFont(font);
         aiScoreText.setCharacterSize(20);
         aiScoreText.setFillColor(sf::Color::White);
         aiScoreText.setString("AI: 0");
-        aiScoreText.setPosition(board.box.getPosition().x + board.box.getSize().x - 120.f, board.box.getPosition().y + 15.f);
+        aiScoreText.setPosition(board.box.getPosition().x + board.box.getSize().x - 120.f, board.box.getPosition().y + 25.f);
 
         // Timer text (center)
         timerText.setFont(font);
@@ -168,7 +267,17 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win) {
         timerText.setFillColor(sf::Color::White);
         timerText.setString("60s");
         float centerX = board.box.getPosition().x + board.box.getSize().x / 2.f;
-        timerText.setPosition(centerX - 20.f, board.box.getPosition().y + 15.f);
+        timerText.setPosition(centerX - 20.f, board.box.getPosition().y + 25.f);
+    
+        // Current request display 
+        currentRequestText.setFont(font);
+        currentRequestText.setCharacterSize(20);
+        currentRequestText.setFillColor(sf::Color::White);
+        currentRequestText.setString("Request: -");
+        currentRequestText.setPosition(
+            board.box.getPosition().x + 180.f,
+            board.box.getPosition().y + 0.5f // adjust 
+        );
     }
 
     // --------------------------------------------------
@@ -332,6 +441,38 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win) {
     aiFarmer.body.setFillColor(sf::Color::Red);
     aiFarmer.body.setPosition(aiStart);
     aiFarmer.score = 0;
+
+    // --------------------------------------------------
+    // 11) GENERATE RANDOM REQUESTS FOR THIS LEVEL
+    // --------------------------------------------------
+    int nReq = numRequestsForLevel(levelID);
+    requests.clear();
+    requests.reserve(nReq);
+
+    for (int i = 0; i < nReq; ++i) {
+        Request r = makeRandomRequest(levelID);
+        requests.push_back(r);
+    }
+
+    currentRequestIndex = 0;
+
+    // Debug: print them in console so you can see them
+    std::cout << "=== Requests for level " << levelID << " ===\n";
+    for (int i = 0; i < static_cast<int>(requests.size()); ++i) {
+        std::cout << "Request " << i + 1 << ": ";
+
+        for (const auto& item : requests[i].items) {
+            CropType ct = item.first;
+            int qty     = item.second;
+            std::cout << qty << "x " << cropName(ct) << "  ";
+        }
+
+        std::cout << "\n";
+    }
+
+    if (!requests.empty() && hasFont) {
+        currentRequestText.setString("Request: " + requestToString(requests[0]));
+    }
 }
 
 sf::Texture& Game::seedTexture(CropType ct) {
@@ -470,11 +611,53 @@ void Game::handleEvent(const sf::Event& e) {
                 } 
                 if (tile.type == GroundType::Market && playerFarmer.hasProduct) {
                     // sell product
-                    playerFarmer.score += 2; // selling gives 2 points
+                    CropType product = playerFarmer.carriedSeed;
+
+                    if(currentRequestIndex >= 0 && currentRequestIndex < static_cast<int>(requests.size())) {
+                        Request& r = requests[currentRequestIndex];
+                        bool completed = false;
+
+                        for (auto& item : r.items) {
+                            if (item.first == product && item.second > 0) {
+                                item.second -= 1; // decrease quantity needed
+                                completed = true;
+                                playerFarmer.score += 2; // give points per veg delivered
+                                break;
+                            }
+                        }
+                        // if nothing matched, you can decide: either ignore, or small penalty
+                        if (!completed) {
+                            std::cout << "Wrong product for this request!\n";
+                        }
+
+                        if (completed) {
+                            std::cout << cropName(product) << " delivered for the request\n";
+
+                            // Check if the entire request is fulfilled
+                            bool allDone = true;
+                            for (const auto& item : r.items) {
+                                if (item.second > 0) {
+                                    allDone = false;
+                                    break;
+                                }
+                            }
+
+                            if (allDone) {
+                                std::cout << "Request " << (currentRequestIndex + 1) << " completed!\n";
+                                currentRequestIndex++;
+                                if (currentRequestIndex < static_cast<int>(requests.size()) && hasFont) {
+                                    currentRequestText.setString("Request: " + requestToString(requests[currentRequestIndex]));
+                                } else {
+                                    currentRequestText.setString("All requests completed!");
+                                }
+                            }
+                        } else {
+                            std::cout << cropName(product) << " is not needed for the current request\n";
+                        }
+                    }
+
                     playerFarmer.hasProduct = false;
-                    std::cout << cropName(playerFarmer.carriedSeed) << " sold\n";
                     playerFarmer.carriedSeed = CropType::None;
-                    //tile.action = ActionType::DropProduct;
                     break;
                 }
                 if (tile.type == GroundType::Trash) {
@@ -642,6 +825,7 @@ void Game::draw() {
         window.draw(playerScoreText);
         window.draw(aiScoreText);
         window.draw(timerText);
+        window.draw(currentRequestText);
     }
 
     // Farm

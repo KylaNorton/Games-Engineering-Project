@@ -40,6 +40,13 @@ struct Farmer {
     CropType carriedSeed = CropType::None;
 };
 
+// One market request: up to 3 different crops with quantities
+struct Request {
+    std::vector<std::pair<CropType, int>> items;  // (crop, quantity)
+    bool completed = false;
+};
+
+
 class Game {
 public:
     explicit Game(sf::RenderWindow& window, int levelID = 1);
@@ -127,4 +134,20 @@ private:
 
     // Action for main.cpp
     GameAction action { GameAction::None };
+
+    // --- Requests / Orders ---
+    std::vector<Request> requests;
+    int currentRequestIndex = 0;
+    int levelID = 1;
+
+    sf::Text currentRequestText;
+
+    // Request helpers
+    std::vector<CropType> allowedCropsForLevel(int level) const;
+    int maxQtyForLevel(int level) const;
+    int numRequestsForLevel(int level) const;
+    Request makeRandomRequest(int level);
+    std::string requestToString(const Request& r) const;
+
 };
+
