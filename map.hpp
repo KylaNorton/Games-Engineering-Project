@@ -3,7 +3,7 @@
 #include <array>
 #include <string>
 
-enum class MapAction { None}; 
+enum class MapAction { None, Level1, Level2, Level3, Level4 }; 
 
 class Map {
 public:

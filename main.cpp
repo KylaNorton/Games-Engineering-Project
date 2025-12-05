@@ -166,6 +166,24 @@ int main() {
 
             case Screen::Map: {
                 map.draw();
+
+                MapAction a = map.getAction();
+                if (a != MapAction::None) {
+                    // Determine which level was selected
+                    if (a == MapAction::Level1) currentLevel = 1;
+                    else if (a == MapAction::Level2) currentLevel = 2;
+                    else if (a == MapAction::Level3) currentLevel = 3;
+                    else if (a == MapAction::Level4) currentLevel = 4;
+
+                    // Create a new game instance with the selected level
+                    if (game) {
+                        delete game;
+                        game = nullptr;
+                    }
+                    game = new Game(window, currentLevel);
+                    screen = Screen::Game;
+                    map.clearAction();
+                }
             } break;
 
             case Screen::Scores: {
