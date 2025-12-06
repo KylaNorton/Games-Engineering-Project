@@ -8,9 +8,10 @@
 #include "levelSettings.hpp"
 #include "account.hpp"
 #include "scores.hpp"
+#include "player.hpp"
 #include <iostream>
 
-enum class Screen { Menu, Game, Level, Settings, Map, Scores, Account, GameSettings, LevelSettings };
+enum class Screen { Menu, Game, Level, Settings, Map, Scores, Account, GameSettings, LevelSettings, Player };
 
 std::string CURRENT_PLAYER = "";
 int currentLevel = 1;   // for now: always level 1, later change from LevelSettings / Map
@@ -18,7 +19,6 @@ int currentLevel = 1;   // for now: always level 1, later change from LevelSetti
 
 
 int main() {
-  
 
     sf::RenderWindow window(sf::VideoMode(960, 540), "Overgrown");
     window.setVerticalSyncEnabled(true);
@@ -32,6 +32,7 @@ int main() {
     Account account(window);
     GameSettings gameSettings(window);
     LevelSettings levelSettings(window);
+    PlayerSettings player(window);
     Screen screen = Screen::Menu;
 
     Game* game = nullptr;  // pointer so we can reset the game when starting a new one
@@ -89,6 +90,10 @@ int main() {
                     settings.handleEvent(e);
                     if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) screen = Screen::Menu;
                     break;
+                case Screen::Player:
+                    player.handleEvent(e);
+                    if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) screen = Screen::Settings;
+                    break;  
             }
         }
 
@@ -118,7 +123,6 @@ int main() {
                 GameAction b = game->getAction();
                 if (b != GameAction::None) {
                     if (b == GameAction::Back) screen = Screen::GameSettings;
-                    else if (b == GameAction::Pause);
                     else if (b == GameAction::Play) {   // "Play again" from end popup
                         if (game) {
                             delete game;
@@ -227,7 +231,6 @@ int main() {
                 }
             } break;
 
-
             case Screen::Level: {
                 level.draw();
                 // if a level selected, adjust game speed and go to menu
@@ -243,8 +246,24 @@ int main() {
 
             case Screen::Settings: {
                 settings.draw();
-                // you can read settings.showFps() later to render FPS text in Game
+                // read menu action → change screen
+                SettingAction a = settings.getAction();
+                if (a != SettingAction::None) {
+                    if (a == SettingAction::Account) screen = Screen::Account;
+                    else if (a == SettingAction::Customise) screen = Screen::Player;
+                    else if (a == SettingAction::Tuto); //screen = Screen::Tutorial;
+                    settings.clearAction();
+                }
             }   break;
+
+            case Screen::Player: {
+               player.draw();
+                auto a = player.getAction();
+                if (a == PlayerSetAction::Back) {
+                    screen = Screen::Settings;   // or Menu
+                    player.clearAction();
+                }
+            } break;
             
         }
     }

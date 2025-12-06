@@ -66,6 +66,12 @@ void Menu::handleEvent(const sf::Event& e) {
         else if (buttons[3].contains(window, mp)) confirmQuit = true;
     }
 
+    if (e.type == sf::Event::KeyPressed) {
+            if (e.key.code == sf::Keyboard::Q) {
+                window.close();                //quit app
+            }
+    }
+
     if (confirmQuit) {
         if (e.type == sf::Event::KeyPressed) {
             if (e.key.code == sf::Keyboard::Y) {

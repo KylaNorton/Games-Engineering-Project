@@ -28,6 +28,7 @@ game.cpp game.hpp
 level.cpp level.hpp
 menu.hpp menu.cpp
 playerSave.hpp playerSave.cpp
+player.hpp player.cpp
 main.cpp
 )
 

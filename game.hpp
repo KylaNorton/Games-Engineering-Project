@@ -3,7 +3,7 @@
 #include <vector>
 
 //different game screen changes
-enum class GameAction { None, Back, Pause, Play};
+enum class GameAction { None, Back, Play};
 
 //crop types
 enum class CropType { None, Carrot, Tomato, Lettuce, Corn, Potato };
@@ -34,12 +34,9 @@ enum class AIState {
 // One soil tile in the farm
 struct FarmTile {
     sf::RectangleShape rect;
-    //sf::RectangleShape leftField;
-    //sf::RectangleShape rightField;
     TileState state = TileState::Empty;
     GroundType type = GroundType::Empty;
     CropType crop = CropType::None; 
-    //ActionType action = ActionType::None;
     float growthTimer = 0.f;
     bool walkable = false;
 };
@@ -82,6 +79,7 @@ private:
     // Core
     float speed = 200.f;
     bool PauseGame { false };
+    bool Tutorial { false };
 
     sf::RectangleShape leftField;
     sf::RectangleShape rightField;

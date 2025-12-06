@@ -1,4 +1,5 @@
 #include "game.hpp"
+#include "player.hpp"
 #include <iostream>
 #include <fstream>
 #include <random>
@@ -411,7 +412,7 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
         currentRequestText.setFillColor(sf::Color::White);
         currentRequestText.setString("Request: -");
         currentRequestText.setPosition(
-            board.box.getPosition().x + 180.f,
+            board.box.getPosition().x + 170.f,
             board.box.getPosition().y + 0.5f // adjust 
         );
     }
@@ -567,14 +568,14 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
     );
     playerFarmer.body.setRadius(18.f);
     playerFarmer.body.setOrigin(18.f, 18.f);
-    playerFarmer.body.setFillColor(sf::Color::Cyan);
+    playerFarmer.body.setFillColor(gAppearance.playerColor);
     playerFarmer.body.setPosition(playerStart);
     playerFarmer.score = 0;
 
     sf::Vector2f aiStart(winW * 0.75f, playTop + playHeight * 0.5f);  // three quarters of the screen width
     aiFarmer.body.setRadius(18.f);
     aiFarmer.body.setOrigin(18.f, 18.f);
-    aiFarmer.body.setFillColor(sf::Color::Red);
+    aiFarmer.body.setFillColor(gAppearance.aiColor);
     aiFarmer.body.setPosition(aiStart);
     aiFarmer.score = 0;
 
@@ -631,20 +632,35 @@ void Game::handleEvent(const sf::Event& e) {
         }
         if (pauseButton.box.getGlobalBounds().contains(m)) {
             PauseGame = true;
-            action = GameAction::Pause;
         }
     }
 
-    if (e.type == sf::Event::KeyPressed) {
-            if (e.key.code == sf::Keyboard::Q) {
-                window.close();                //quit app
+    if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Q) {
+        window.close(); //quit app
+    }
+
+    if (!PauseGame && !Tutorial && !EndGame && e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Space) {
+        PauseGame = true; 
+        return;
+    }
+    
+    if (Tutorial) {
+        if (e.type == sf::Event::KeyPressed) {
+            if (e.key.code == sf::Keyboard::C) {
+                PauseGame = true;
+                Tutorial = false; // close popup, back to pause
             }
+        }
+        return; // while popup is open, ignore other events
     }
 
     if (PauseGame) {
         if (e.type == sf::Event::KeyPressed) {
             if (e.key.code == sf::Keyboard::Space) {
                 PauseGame = false; // close popup, back to game
+            }
+            if (e.key.code == sf::Keyboard::T) {
+                Tutorial = true;   // open tutorial popup
             }
         }
         return; // while popup is open, ignore other events
@@ -767,7 +783,7 @@ void Game::handleEvent(const sf::Event& e) {
                         }
 
                         if (completed) {
-                            std::cout << cropName(product) << " delivered for the request\n";
+                            std::cout << cropName(product) << " delivered for the request \n";
 
                             // Check if the entire request is fulfilled
                             bool allDone = true;
@@ -1281,7 +1297,7 @@ void Game::draw() {
         overlay.setFillColor(sf::Color(0, 0, 0, 180));
         window.draw(overlay);
 
-        sf::Text text("Game Paused \nPress Space bar to continue", font, 28);
+        sf::Text text("Game Paused \nPress Space bar to continue \n\n Press T to view game tutorial", font, 28);
         text.setFillColor(sf::Color::White);
         auto tb = text.getLocalBounds();
         text.setOrigin(tb.left + tb.width / 2.f, tb.top + tb.height / 2.f);
@@ -1325,7 +1341,40 @@ void Game::draw() {
         window.draw(text);
     }
 
+    // Tutorial popup
+    if (Tutorial && hasFont) {
+        sf::RectangleShape overlay(sf::Vector2f(window.getSize()));
+        overlay.setFillColor(sf::Color(0, 0, 0, 180));
+        window.draw(overlay);
 
+        sf::Text text;
+        text.setFont(font);
+        text.setCharacterSize(20);
+        text.setFillColor(sf::Color::White);
+
+
+        std::string msg = "Game Tutorial (Press C to close)\n\n";
+        msg += "Move the player using the < > and up/down keys. \n\n";
+        msg += "Game Goal:  Compete against AI to complete the most requests before time runs out!\n\n";
+        msg += "To complete a request:\n";
+        msg += "  1. Take a vegetable seed (ex tomato seed) from the seed boxes (left bar) \n";
+        msg += "  To take something using the key T on your keyboard\n";
+        msg += "  2. Plant the seed in an empty soil tile (brown square in the farm area) \n";
+        msg += "      Plant using the key D for drop on your keyboard \n";
+        msg += "  3. Wait for the crop to grow (the vegetable sprite will appear when grown) \n";
+        msg += "  4. Harvest the crop using the key T on your keyboard \n";
+        msg += "  5. Deliver the vegetable to the market (bottom green bar) using the key D \n\n";
+        msg += "Do that until you have delivered all the vegetables requested! \n\n";
+        msg += "Use key Q to quit the game anytime.\n";
+        msg += "\nGood luck and have fun!";    
+
+        text.setString(msg);
+       
+        sf::FloatRect tb = text.getLocalBounds();
+        text.setOrigin(tb.left + tb.width / 2.f, tb.top + tb.height / 2.f);
+        text.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f);
+        window.draw(text);
+    }
 
     window.display();
 }

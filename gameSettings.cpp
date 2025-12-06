@@ -64,6 +64,12 @@ void GameSettings::handleEvent(const sf::Event& e) {
         else if (buttons[1].contains(window, mp)) action = GameSetAction::PlayAgain;
         else if (buttons[2].contains(window, mp)) action = GameSetAction::Account;
     }
+
+    if (e.type == sf::Event::KeyPressed) {
+            if (e.key.code == sf::Keyboard::Q) {
+                window.close();                //quit app
+            }
+    }
 }
 
 void GameSettings::checkHover() {
