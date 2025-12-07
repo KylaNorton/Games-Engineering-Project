@@ -77,3 +77,12 @@ void LevelSettings::draw() {
     }
     window.display();
 }
+
+void LevelSettings::recomputeLayout() {
+    const sf::Vector2f size(320.f, 64.f);
+    const float cx = window.getSize().x * 0.5f;
+    auto pos = [&](float y){ return sf::Vector2f(cx - size.x * 0.5f, y); };
+
+    setupButton(buttons[0], "Map",    pos(180.f));
+    setupButton(buttons[1], "Scores", pos(270.f));
+}

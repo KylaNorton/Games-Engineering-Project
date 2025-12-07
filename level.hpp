@@ -8,6 +8,7 @@ public:
     explicit Level(sf::RenderWindow& window);
     void handleEvent(const sf::Event& e);
     void draw();
+    void recomputeLayout();
     Difficulty chosen() const { return choice; }
     void reset() { choice = Difficulty::None; }
     struct Btn { sf::RectangleShape box; sf::Text label; };

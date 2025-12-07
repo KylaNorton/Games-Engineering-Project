@@ -20,6 +20,7 @@ public:
     explicit Scores(sf::RenderWindow& window);
     void handleEvent(const sf::Event& e);
     void draw();
+    void recomputeLayout();
     ScoresAction getAction() const { return action; }
     void clearAction() { action = ScoresAction::None; } // for when you return to menu
 

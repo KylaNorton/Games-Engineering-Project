@@ -31,6 +31,32 @@ Menu::Menu(sf::RenderWindow& window)
     if (hasFont) centerLabel(buttons[3]);
 }
 
+void Menu::recomputeLayout() {
+    const sf::Vector2f size(320.f, 64.f);
+    const float cx = window.getSize().x * 0.5f;
+    auto pos = [&](float y){ return sf::Vector2f(cx - size.x * 0.5f, y); };
+
+    // reposition main buttons
+    buttons[0].box.setPosition(pos(160.f));
+    buttons[1].box.setPosition(pos(260.f));
+    buttons[2].box.setPosition(pos(360.f));
+    if (hasFont) {
+        centerLabel(buttons[0]);
+        centerLabel(buttons[1]);
+        centerLabel(buttons[2]);
+    }
+
+    // quit button: bottom-right
+    const sf::Vector2f quitSize(160.f, 48.f);
+    sf::Vector2f quitPos(
+        window.getSize().x - quitSize.x - 30.f,
+        window.getSize().y - quitSize.y - 30.f
+    );
+    buttons[3].box.setPosition(quitPos);
+    buttons[3].box.setSize(quitSize);
+    if (hasFont) centerLabel(buttons[3]);
+}
+
 void Menu::setupButton(Button& b, const std::string& text, sf::Vector2f p) {
     // Rectangle
     b.box.setSize({320.f, 64.f});

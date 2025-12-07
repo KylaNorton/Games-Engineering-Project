@@ -11,6 +11,8 @@ public:
     explicit Menu(sf::RenderWindow& window);
     void handleEvent(const sf::Event& e);
     void draw();
+    // Recompute layout when the window is resized
+    void recomputeLayout();
     MenuAction getAction() const { return action; }
     void clearAction() { action = MenuAction::None; } // for when you return to menu
 

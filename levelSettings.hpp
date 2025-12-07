@@ -10,6 +10,7 @@ public:
     explicit LevelSettings(sf::RenderWindow& window);
     void handleEvent(const sf::Event& e);
     void draw();
+    void recomputeLayout();
     LevelAction getAction() const { return action; }
     void clearAction() { action = LevelAction::None; } // for when you return to menu
 

@@ -11,6 +11,8 @@ public:
     explicit Account(sf::RenderWindow& window);
     void handleEvent(const sf::Event& e);
     void draw();
+    // Recompute layout when window is resized
+    void recomputeLayout();
     AccountAction getAction() const { return action; }
     void clearAction() { action = AccountAction::None; } // for when you return to menu
     bool newPlayerCreated() const { return wasNewPlayerCreated; }
@@ -65,8 +67,11 @@ private:
     const float playerButtonHeight = 60.f;
     const float playerButtonGap = 15.f;
     const float scrollSpeed = 30.f;
-    const float listStartY = 100.f;
-    const float listMaxHeight = 380.f;
+    float listStartY = 100.f;
+    float listMaxHeight = 380.f;
+    // left X and content width computed on resize
+    float listLeftX = 130.f;
+    float contentWidth = 700.f;
 
     // Text entry mode
     bool enteringName = false;

@@ -35,6 +35,16 @@ Level::Level(sf::RenderWindow& win) : window(win) {
     setup(font, hasFont, hard,   "Hard",   pos(340.f), size, idle, text);
 }
 
+void Level::recomputeLayout() {
+    const sf::Vector2f size(260.f, 64.f);
+    float cx = window.getSize().x * 0.5f;
+    auto pos = [&](float y){ return sf::Vector2f(cx - size.x*0.5f, y); };
+
+    setup(font, hasFont, easy,   "Easy",   pos(160.f), size, idle, text);
+    setup(font, hasFont, medium, "Medium", pos(250.f), size, idle, text);
+    setup(font, hasFont, hard,   "Hard",   pos(340.f), size, idle, text);
+}
+
 void Level::handleEvent(const sf::Event& e) {
     if (e.type == sf::Event::MouseMoved) {
         auto mp = sf::Mouse::getPosition(window);

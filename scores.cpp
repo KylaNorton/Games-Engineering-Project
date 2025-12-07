@@ -88,11 +88,48 @@ void Scores::draw() {
 
     window.clear(sf::Color(10, 10, 30));
 
+    float winW = static_cast<float>(window.getSize().x);
+    float winH = static_cast<float>(window.getSize().y);
+
+    // Draw title centered
+
     if (hasFont) {
         sf::Text title("Best Scores by Level", font, 36);
         title.setFillColor(sf::Color::White);
+        sf::FloatRect tb = title.getLocalBounds();
+        title.setOrigin(tb.left + tb.width/2.f, tb.top + tb.height/2.f);
+        title.setPosition(winW * 0.5f, winH * 0.08f);
         title.setPosition(360, 30);
         window.draw(title);
+
+        // Draw score entries
+        float yPos = winH * 0.22f;
+        int rank = 1;
+        float entryX = winW * 0.18f;
+        float lineH = std::max(28.f, winH * 0.04f);
+
+        for (const auto& entry : bestScores) {
+            if (yPos > winH - 80.f) break;  // Avoid drawing off-screen
+
+            sf::Text scoreText(
+                std::to_string(rank) + ". " + entry.playerName + " - " + std::to_string(entry.score),
+                font,
+                static_cast<unsigned int>(std::max(18.f, winH * 0.03f))
+            );
+            scoreText.setFillColor(sf::Color(255, 230, 255));
+            scoreText.setPosition(entryX, yPos);
+            window.draw(scoreText);
+
+            yPos += lineH;
+            rank++;
+        }
+
+        // Draw "no scores" message if empty
+        if (bestScores.empty()) {
+            sf::Text noScores("No scores yet!", font, 24);
+            noScores.setFillColor(sf::Color(200, 200, 200));
+            noScores.setPosition(winW * 0.5f - 60.f, winH * 0.5f);
+            window.draw(noScores);
 
         // Column layout for 4 levels
         const float startX = 80.f;
@@ -142,5 +179,10 @@ void Scores::draw() {
         }
     }
 
+
     window.display();
+}
+
+void Scores::recomputeLayout() {
+    // Nothing persistent to cache; draw() computes positions each frame.
 }

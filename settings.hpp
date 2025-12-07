@@ -10,6 +10,7 @@ public:
     explicit Settings(sf::RenderWindow& window);
     void handleEvent(const sf::Event& e);
     void draw();
+    void recomputeLayout();
     SettingAction getAction() const { return action; }
     void clearAction() { action = SettingAction::None; } // for when you return to menu
 

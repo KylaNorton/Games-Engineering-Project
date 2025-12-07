@@ -16,6 +16,24 @@ Map::Map(sf::RenderWindow& window): window(window) {
     setupButton(buttons[3], "Level 4", {520.f, 320.f});
 }
 
+void Map::recomputeLayout() {
+    // place 2x2 grid centered horizontally with some margins
+    const float winW = static_cast<float>(window.getSize().x);
+    const float winH = static_cast<float>(window.getSize().y);
+    float bw = std::min(300.f, winW * 0.28f);
+    float bh = 100.f;
+
+    float leftX = winW * 0.22f;
+    float rightX = winW * 0.62f;
+    float topY = winH * 0.22f;
+    float bottomY = winH * 0.5f;
+
+    setupButton(buttons[0], "Level 1", {leftX, topY});
+    setupButton(buttons[1], "Level 2", {rightX, topY});
+    setupButton(buttons[2], "Level 3", {leftX, bottomY});
+    setupButton(buttons[3], "Level 4", {rightX, bottomY});
+}
+
 void Map::setupButton(Button& b, const std::string& text, sf::Vector2f pos)
 {
     b.box.setSize(sf::Vector2f(250.f, 100.f));

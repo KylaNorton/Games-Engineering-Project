@@ -97,3 +97,17 @@ void GameSettings::draw() {
     }
     window.display();
 }
+
+void GameSettings::recomputeLayout() {
+    const sf::Vector2f size(320.f, 64.f);
+    const float cx = window.getSize().x * 0.5f;
+    setupButton(buttons[0], "New Game",   sf::Vector2f(cx - size.x * 0.5f, 180.f));
+    setupButton(buttons[1], "Play Again", sf::Vector2f(cx - size.x * 0.5f, 260.f));
+
+    // Account button top-right
+    const sf::Vector2f accSize(160.f, 40.f);
+    sf::Vector2f accPos(window.getSize().x - accSize.x - 30.f, 30.f);
+    setupButton(buttons[2], "Account", accPos);
+    buttons[2].box.setSize(accSize);
+    if (hasFont) centerLabel(buttons[2]);
+}

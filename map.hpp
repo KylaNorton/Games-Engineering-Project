@@ -10,6 +10,7 @@ public:
     explicit Map(sf::RenderWindow& window);
     void handleEvent(const sf::Event& e);
     void draw();
+    void recomputeLayout();
     MapAction getAction() const { return action; }
     void clearAction() { action = MapAction::None; } // for when you return to menu
 

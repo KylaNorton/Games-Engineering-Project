@@ -32,10 +32,12 @@ int main() {
     Account account(window);
     GameSettings gameSettings(window);
     LevelSettings levelSettings(window);
-    PlayerSettings player(window);
+    PlayerSettings* player = nullptr;
     //PlayerSpriteLibrary spriteLib(window);
     Screen screen = Screen::Menu;
 
+    // Load available player sprites (sprite1..sprite10) plus a dedicated AI sprite.
+    // Missing files are tolerated and will be skipped with a warning.
     PlayerSpriteLibrary::instance().load({
         "res/sprites/sprite1.png",
         "res/sprites/sprite2.png",
@@ -46,14 +48,21 @@ int main() {
         "res/sprites/sprite7.png",
         "res/sprites/sprite8.png",
         "res/sprites/sprite9.png",
-        "res/sprites/sprite10.png"
+        "res/sprites/sprite10.png",
+        "res/sprites/aiSprite.png"
     });
+
+    // Load a dedicated AI texture (fixed, not selectable by player settings).
+    PlayerSpriteLibrary::instance().loadAiTexture("res/sprites/aiSprite");
+
+    // Create the PlayerSettings after the sprite library is loaded
+    player = new PlayerSettings(window);
 
     // init default appearance
     gAppearance.playerColor = sf::Color::Cyan;
     gAppearance.aiColor = sf::Color::Red;
     gAppearance.playerTextureIndex = 0;
-    gAppearance.aiTextureIndex     = 1;
+    // AI texture index already set to dedicated AI sprite above
 
     Game* game = nullptr;  // pointer so we can reset the game when starting a new one
     
@@ -65,6 +74,25 @@ int main() {
         sf::Event e{};
         while (window.pollEvent(e)) {
             if (e.type == sf::Event::Closed) window.close();
+
+            if (e.type == sf::Event::Resized) {
+                // adjust the view to the new window size
+                sf::FloatRect visibleArea(0.f, 0.f, static_cast<float>(e.size.width), static_cast<float>(e.size.height));
+                window.setView(sf::View(visibleArea));
+                switch (screen) {
+                    case Screen::Menu: menu.recomputeLayout(); break;
+                    case Screen::Game: if (game) game->recomputeLayout(); break;
+                    case Screen::Level: level.recomputeLayout(); break;
+                    case Screen::Settings: settings.recomputeLayout(); break;
+                    case Screen::Map: map.recomputeLayout(); break;
+                    case Screen::Scores: scores.recomputeLayout(); break;
+                    case Screen::Account: account.recomputeLayout(); break;
+                    case Screen::GameSettings: gameSettings.recomputeLayout(); break;
+                    case Screen::LevelSettings: levelSettings.recomputeLayout(); break;
+                    case Screen::Player: if (player) player->recomputeLayout(); break;
+                    default: break;
+                }
+            }
 
             switch (screen) {
                 case Screen::Menu:
@@ -83,6 +111,8 @@ int main() {
                     break;
                 case Screen::Account:
                     account.handleEvent(e);
+                    if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) 
+                    screen = Screen::Menu;
                     break;
                 case Screen::Level:
                     level.handleEvent(e);
@@ -110,9 +140,9 @@ int main() {
                     if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) screen = Screen::Menu;
                     break;
                 case Screen::Player:
-                    player.handleEvent(e);
+                    if (player) player->handleEvent(e);
                     if (e.type == sf::Event::KeyPressed && e.key.code == sf::Keyboard::Escape) screen = Screen::Settings;
-                    break;  
+                    break;
             }
         }
 
@@ -149,11 +179,21 @@ int main() {
                 GameAction b = game->getAction();
                 if (b != GameAction::None) {
                     if (b == GameAction::Back) screen = Screen::GameSettings;
-                    else if (b == GameAction::Play) {   // "Play again" from end popup
+                    else if (b == GameAction::Play) { // "Play again" from end popup
                         if (game) {
                             delete game;
                             game = nullptr;
                         }
+                        game = new Game(window, currentLevel);
+                        screen = Screen::Game;
+                    }
+                    else if (b == GameAction::Next) { // "Next level" from end popup
+                        if (game) {
+                            delete game;
+                            game = nullptr;
+                        }
+                        // move to level 2 for the same player
+                        currentLevel = 2;
                         game = new Game(window, currentLevel);
                         screen = Screen::Game;
                     }
@@ -166,13 +206,8 @@ int main() {
 
                 GameSetAction a = gameSettings.getAction();
                 if (a != GameSetAction::None) {
-                    if (a == GameSetAction::NewGame) {
-                        if (game) {
-                            delete game;
-                            game = nullptr;
-                        }
-                        game = new Game(window, currentLevel); 
-                        screen = Screen::Game;
+                    if (a == GameSetAction::NewGame) { 
+                        screen = Screen::Map;
                     }
                     else if (a == GameSetAction::PlayAgain) {
                         if (game) {
@@ -290,11 +325,15 @@ int main() {
             }   break;
 
             case Screen::Player: {
-               player.draw();
-                auto a = player.getAction();
-                if (a == PlayerSetAction::Back) {
-                    screen = Screen::Settings;   // or Menu
-                    player.clearAction();
+               if (player) player->draw();
+                if (player) {
+                    auto a = player->getAction();
+                    if (a == PlayerSetAction::Back) {
+                        // apply and persist player appearance changes
+                        player->applySettings();
+                        screen = Screen::Settings;   // or Menu
+                        player->clearAction();
+                    }
                 }
             } break;
             

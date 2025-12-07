@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstdio>
+#include <algorithm>
 
 extern std::string CURRENT_PLAYER;
 
@@ -53,6 +54,40 @@ void Account::loadPlayerButtons()
 
     // Reset scroll offset
     scrollOffset = 0.f;
+}
+
+void Account::recomputeLayout()
+{
+    float winW = static_cast<float>(window.getSize().x);
+    float winH = static_cast<float>(window.getSize().y);
+
+    // left margin and content width
+    listLeftX = std::max(40.f, winW * 0.12f);
+    contentWidth = std::max(360.f, winW - listLeftX - 60.f);
+
+    // list area height
+    listStartY = std::max(80.f, winH * 0.18f);
+    listMaxHeight = std::max(240.f, winH * 0.6f);
+
+    // Create button (top-right)
+    sf::Vector2f accSize(140.f, 50.f);
+    sf::Vector2f accPos(winW - accSize.x - 30.f, 20.f);
+    createButton.box.setPosition(accPos);
+    createButton.box.setSize(accSize);
+    if (hasFont) centerLabel(createButton);
+
+    // Input text positions for entry/rename - center-ish
+    inputText.setPosition(winW * 0.5f - 160.f, winH * 0.35f);
+    renameText.setPosition(winW * 0.5f - 160.f, winH * 0.35f);
+
+    // Resize each player button width and re-center label
+    for (auto &pb : playerButtons) {
+        pb.box.setSize({contentWidth, playerButtonHeight});
+        centerPlayerLabel(pb);
+    }
+
+    // Update scroll bounds after layout change
+    updateScrollPosition();
 }
 
 void Account::setupButton(Button& b, const std::string& text, sf::Vector2f pos)
@@ -271,7 +306,7 @@ void Account::handleEvent(const sf::Event& e)
         float currentY = listStartY - scrollOffset;
         for (size_t i = 0; i < playerButtons.size(); ++i) {
             float y = currentY + i * (playerButtonHeight + playerButtonGap);
-            sf::FloatRect r(130.f, y, playerButtons[i].box.getSize().x, playerButtonHeight);
+            sf::FloatRect r(listLeftX, y, playerButtons[i].box.getSize().x, playerButtonHeight);
             if (r.contains(world)) {
                 hoveredIndex = static_cast<int>(i);
                 break;
@@ -305,13 +340,13 @@ void Account::handleEvent(const sf::Event& e)
         float currentY = listStartY - scrollOffset;
         for (size_t i = 0; i < playerButtons.size(); ++i) {
             float y = currentY + i * (playerButtonHeight + playerButtonGap);
-            sf::FloatRect boxRect(130.f, y, playerButtons[i].box.getSize().x, playerButtonHeight);
+            sf::FloatRect boxRect(listLeftX, y, playerButtons[i].box.getSize().x, playerButtonHeight);
             if (boxRect.contains(world)) {
                 // Compute rename and delete button rects
                 float delW = deleteButtonWidth;
                 float renW = renameButtonWidth;
                 float btnH = playerButtonHeight - 16.f;
-                float delX = 130.f + playerButtons[i].box.getSize().x - delW - deleteButtonPadding;
+                float delX = listLeftX + playerButtons[i].box.getSize().x - delW - deleteButtonPadding;
                 float renX = delX - renW - 8.f;
                 float btnY = y + (playerButtonHeight - btnH) / 2.f;
 
@@ -415,7 +450,7 @@ void Account::draw()
         auto& pb = playerButtons[i];
         // Only draw if within visible list area
         if (currentY + playerButtonHeight >= listStartY && currentY < listStartY + listMaxHeight) {
-            pb.box.setPosition(130.f, currentY);
+            pb.box.setPosition(listLeftX, currentY);
             // Position label left inside the box
             if (hasFont) positionPlayerLabelLeft(pb);
 
@@ -476,7 +511,10 @@ void Account::draw()
         box.setFillColor(sf::Color(20, 20, 20));
         box.setOutlineColor(sf::Color::White);
         box.setOutlineThickness(2.f);
-        box.setPosition(280.f, 220.f);
+
+        // position box centered near inputText
+        sf::Vector2f it = inputText.getPosition();
+        box.setPosition(it.x - 12.f, it.y - box.getSize().y / 2.f);
 
         // Position inputText inside the box with left padding and vertical centering
         if (hasFont) {
@@ -499,7 +537,10 @@ void Account::draw()
         box.setFillColor(sf::Color(20, 20, 20));
         box.setOutlineColor(sf::Color::White);
         box.setOutlineThickness(2.f);
-        box.setPosition(280.f, 220.f);
+
+        // position box centered near renameText
+        sf::Vector2f rt = renameText.getPosition();
+        box.setPosition(rt.x - 12.f, rt.y - box.getSize().y / 2.f);
 
         // Position renameText inside the box with left padding and vertical centering
         if (hasFont) {

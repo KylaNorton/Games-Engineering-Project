@@ -16,8 +16,6 @@ struct PlayerAppearance {
     int playerTextureIndex = 0;
     int aiTextureIndex = 1;
 
-    bool playerUseSprite = true;   // true = sprite, false = circle
-    bool aiUseSprite = true;
 };
 
 struct SkinButton {
@@ -25,6 +23,7 @@ struct SkinButton {
     sf::Sprite icon;
     int textureIndex = 0;
     bool isForPlayer = true; // true -> affects player, false -> affects AI
+    sf::Text label; // small label under the icon (e.g. "Skin 1")
 };
 
 // This is the global instance (declared extern here, defined in player.cpp)
@@ -43,6 +42,7 @@ public:
     void handleEvent(const sf::Event& e);
     void draw();
     void applySettings(); // (for now this will just update gAppearance)
+    void recomputeLayout();
 
     PlayerSetAction getAction() const { return action; }
     void clearAction() { action = PlayerSetAction::None; }
@@ -51,12 +51,6 @@ public:
     sf::Sprite playerPreviewSprite;
     sf::Sprite aiPreviewSprite;
 
-    // color swatches
-    std::vector<sf::RectangleShape> playerColorSwatches;
-    std::vector<sf::RectangleShape> aiColorSwatches;
-
-    void createColorSwatches();
-    void updateColorSwatchHighlights();
     void updatePreviews();
 
 
@@ -88,42 +82,21 @@ private:
     sf::Color bgColor  {20, 40, 60};
 
     // Visual customization
-    sf::RectangleShape playerColorBox;
-    sf::RectangleShape aiColorBox;
-
-    std::vector<sf::Color> palette;
-    int playerColorIndex = 0;
-    int aiColorIndex = 1;   // different from player by default
-
     void setupButton(Button& b, const std::string& text, sf::Vector2f p);
     void centerLabel(Button& b);
     void checkHover();
     void resetColors();
 
-    void initPalette();
-    void applyAppearanceFromGlobal();
     void updateGlobalAppearance();
 
     std::vector<SkinButton> skinButtons;
     void createSkinButtons();
     void updateSelectionHighlight();
 
-    // --- Mode toggles ---
-    sf::RectangleShape playerModeCircleBox;
-    sf::RectangleShape playerModeSpriteBox;
-    sf::Text           playerModeCircleText;
-    sf::Text           playerModeSpriteText;
-
-    sf::RectangleShape aiModeCircleBox;
-    sf::RectangleShape aiModeSpriteBox;
-    sf::Text           aiModeCircleText;
-    sf::Text           aiModeSpriteText;
-
-    // --- Previews: we already have sprites, add circles ---
-    sf::CircleShape playerPreviewCircle;
-    sf::CircleShape aiPreviewCircle;
-
-    void setupModeButtons();
-    void updateModeButtonHighlights();
-
+    // --- Previews: sprites ---
+    // layout helpers (updated by recomputeLayout)
+    float skinRowY = 0.f;
+    float skinRowTotalWidth = 0.f;
+    float skinBoxSize = 64.f;
+    float skinSpacing = 20.f;
 };

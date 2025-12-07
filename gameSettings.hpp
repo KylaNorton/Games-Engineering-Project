@@ -10,6 +10,7 @@ public:
     explicit GameSettings(sf::RenderWindow& window);
     void handleEvent(const sf::Event& e);
     void draw();
+    void recomputeLayout();
     GameSetAction getAction() const { return action; }
     void clearAction() { action = GameSetAction::None; } // for when you return to menu
 

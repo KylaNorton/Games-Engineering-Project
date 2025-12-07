@@ -130,3 +130,13 @@ void Settings::draw() {
 
     window.display();
 }
+
+void Settings::recomputeLayout() {
+    const sf::Vector2f size(320.f, 64.f);
+    const float cx = window.getSize().x * 0.5f;
+    auto pos = [&](float y){ return sf::Vector2f(cx - size.x * 0.5f, y); };
+
+    setupButton(buttons[0], "Account", pos(160.f));
+    setupButton(buttons[1], "Customise Player", pos(260.f));
+    setupButton(buttons[2], "Game Tutorial", pos(360.f));
+}

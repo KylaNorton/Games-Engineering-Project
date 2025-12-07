@@ -1,4 +1,5 @@
 #include "playerSave.hpp"
+#include "player.hpp"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -12,7 +13,9 @@ PlayerSave PlayerSave::activePlayer = PlayerSave("Default");
 
 /* ----------------------------------------------------- */
 PlayerSave::PlayerSave(const string& name)
-    : name(name), levelsCompleted(0), highScores(5, 0) {}
+        : name(name), levelsCompleted(0), highScores(5, 0),
+            playerTextureIndex(0), aiTextureIndex(1),
+            playerColor(sf::Color::Cyan), aiColor(sf::Color::Red) {}
 
 /* ----------------------------------------------------- */
 string PlayerSave::getFilename() const {
@@ -30,6 +33,11 @@ void PlayerSave::saveToFile() const {
     for (size_t i = 0; i < highScores.size(); i++) {
         file << (i + 1) << ": " << highScores[i] << "\n";
     }
+    // Write appearance data (sprites-only)
+    file << "PlayerTextureIndex: " << playerTextureIndex << "\n";
+    file << "AITextureIndex: " << aiTextureIndex << "\n";
+    file << "PlayerColor: " << static_cast<int>(playerColor.r) << " " << static_cast<int>(playerColor.g) << " " << static_cast<int>(playerColor.b) << "\n";
+    file << "AIColor: " << static_cast<int>(aiColor.r) << " " << static_cast<int>(aiColor.g) << " " << static_cast<int>(aiColor.b) << "\n";
 }
 
 /* ----------------------------------------------------- */
@@ -42,9 +50,29 @@ bool PlayerSave::loadFromFile() {
 
     while (getline(file, line)) {
         if (line.rfind("Name:", 0) == 0) {
-            // Skip the name; it's already set in constructor
             continue;
         }
+
+        // Appearance fields
+        if (line.rfind("PlayerTextureIndex:", 0) == 0) {
+            try { playerTextureIndex = stoi(line.substr(line.find(':') + 1)); } catch(...) {}
+            continue;
+        }
+        if (line.rfind("AITextureIndex:", 0) == 0) {
+            try { aiTextureIndex = stoi(line.substr(line.find(':') + 1)); } catch(...) {}
+            continue;
+        }
+        if (line.rfind("PlayerColor:", 0) == 0) {
+            std::istringstream iss(line.substr(line.find(':') + 1));
+            int r,g,b; if (iss >> r >> g >> b) playerColor = sf::Color(r,g,b);
+            continue;
+        }
+        if (line.rfind("AIColor:", 0) == 0) {
+            std::istringstream iss(line.substr(line.find(':') + 1));
+            int r,g,b; if (iss >> r >> g >> b) aiColor = sf::Color(r,g,b);
+            continue;
+        }
+
         // Parse lines like "1: 100", "2: 50", etc.
         size_t colonPos = line.find(':');
         if (colonPos != string::npos) {
@@ -92,6 +120,8 @@ void PlayerSave::setActivePlayer(const PlayerSave& ps) {
     // Load the player's file immediately so `activePlayer` contains
     // the persisted high scores and other data.
     activePlayer.loadFromFile();
+    // Apply loaded appearance to global appearance
+    activePlayer.applyLoadedData();
 }
 
 /* ----------------------------------------------------- */
@@ -105,6 +135,16 @@ void PlayerSave::loadPlayerData(const string& filename) {
     string line;
     while (getline(file, line))
         cout << line << "\n";
+}
+
+/* ----------------------------------------------------- */
+void PlayerSave::applyLoadedData()
+{
+    // Transfer appearance from activePlayer to global gAppearance
+    gAppearance.playerTextureIndex = activePlayer.playerTextureIndex;
+    // AI texture index is fixed (set at startup), do not override it from save
+    gAppearance.playerColor        = activePlayer.playerColor;
+    // AI color not configurable by player; keep default
 }
 
 /* -----------------------------------------------------
@@ -215,6 +255,11 @@ void PlayerSave::createNewPlayer(const std::string& playerName)
     saveFile << "2: 0\n";
     saveFile << "3: 0\n";
     saveFile << "4: 0\n";
+    // Default appearance (sprites-only)
+    saveFile << "PlayerTextureIndex: 0\n";
+    saveFile << "AITextureIndex: 1\n";
+    saveFile << "PlayerColor: " << static_cast<int>(sf::Color::Cyan.r) << " " << static_cast<int>(sf::Color::Cyan.g) << " " << static_cast<int>(sf::Color::Cyan.b) << "\n";
+    saveFile << "AIColor: " << static_cast<int>(sf::Color::Red.r) << " " << static_cast<int>(sf::Color::Red.g) << " " << static_cast<int>(sf::Color::Red.b) << "\n";
     saveFile.close();
 
     // ADD TO PLAYERS LIST

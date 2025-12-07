@@ -31,5 +31,11 @@ public:
     int levelsCompleted;
     std::vector<int> highScores;
 
+    // Appearance (persisted in save file)
+    int playerTextureIndex = 0;
+    int aiTextureIndex = 1;
+    sf::Color playerColor = sf::Color::Cyan;
+    sf::Color aiColor = sf::Color::Red;
+
     static PlayerSave activePlayer;   // CURRENT PLAYER
 };
