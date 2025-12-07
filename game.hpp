@@ -3,7 +3,7 @@
 #include <vector>
 
 //different game screen changes
-enum class GameAction { None, Back, Play};
+enum class GameAction { None, Back, Play, Next};
 
 //crop types
 enum class CropType { None, Carrot, Tomato, Lettuce, Corn, Potato };
@@ -98,7 +98,11 @@ public:
     void setGamePaused(bool p) { PauseGame = p; }
     void showTextPopup(const sf::Font& font, const std::string& msg, sf::Vector2f position);
 
+    // Recompute positions and sizes when the window size changes
+    void recomputeLayout();
     Popup popup;
+
+    void decideWinnerOnGameEnd();
 
 private:
     sf::RenderWindow& window;
@@ -171,7 +175,9 @@ private:
     sf::Text timerText;
 
     // Match timer
-    float gameTimer = 80.f;
+    float gameTimer = 0.f; //set in constructor
+    float initialTimeForLevel(int level) const;
+
 
     GameAction action { GameAction::None };
 

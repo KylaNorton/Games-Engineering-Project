@@ -232,7 +232,7 @@ std::string Game::requestToString(const Request& r) const {
     std::string s;
     for (size_t i = 0; i < r.items.size(); ++i) {
         CropType ct = r.items[i].first;
-        int qty     = r.items[i].second;
+        int qty = r.items[i].second;
         if (qty <= 0) continue;  // already fulfilled
 
         if (!s.empty())
@@ -326,6 +326,18 @@ static void centerSpriteOrigin(sf::Sprite& s) {
     sf::FloatRect bounds = s.getLocalBounds();
     s.setOrigin(bounds.width / 2.f, bounds.height / 2.f);
 }
+
+float Game::initialTimeForLevel(int level) const
+{
+    switch (level) {
+        case 1:  return 80.f;  // 1m20
+        case 2:  return 120.f;  // 2m
+        case 3:  return 140.f;  // 2m20
+        case 4:  return 180.f; // 3m
+        default: return 80.f;
+    }
+}
+
 
 
 // ------------------------
@@ -584,6 +596,8 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
     lettuceTexture.loadFromFile("res/crops/lettuce.png");
     potatoTexture.loadFromFile("res/crops/potato.png");
 
+    gameTimer = initialTimeForLevel(levelID);
+
     // --------------------------------------------------
     // 10) FARMER POSITIONS
     //      - both start roughly in the middle of their half
@@ -604,19 +618,32 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
     centerSpriteOrigin(playerFarmer.sprite);
     playerFarmer.sprite.setPosition(playerFarmer.body.getPosition());
 
-    // Set initial frame for player sprite
+    // Set initial frame for player sprite. Support both 4x4 sheets and single-frame images.
     auto texSize = playerFarmer.sprite.getTexture()->getSize();
-    int frameCols = 4;
-    int frameRows = 4;
-    int frameW = texSize.x / frameCols;
-    int frameH = texSize.y / frameRows;
+    int cols = 4;
+    int rows = 4;
+    int frameW = (cols > 0) ? texSize.x / cols : static_cast<int>(texSize.x);
+    int frameH = (rows > 0) ? texSize.y / rows : static_cast<int>(texSize.y);
 
-    // pick frame (col=0, row=0) = facing down, first frame
+    // Heuristic: if the computed frame is very small compared to the farmer body,
+    // treat the texture as a single-frame image and use the whole texture.
+    float bodyRef = playerFarmer.body.getRadius();
+    if (frameH < static_cast<int>(bodyRef * 1.5f) || frameW < static_cast<int>(bodyRef * 1.5f)) {
+        cols = 1; rows = 1;
+        frameW = static_cast<int>(texSize.x);
+        frameH = static_cast<int>(texSize.y);
+    }
+
     playerFarmer.sprite.setTextureRect(sf::IntRect(0, 0, frameW, frameH));
 
-    // NOW center origin based on frame, not full sheet
+    // Scale the player sprite so its displayed height relates to the farmer body radius,
+    // matching the AI sizing logic.
     centerSpriteOrigin(playerFarmer.sprite);
-    playerFarmer.sprite.setScale(0.5f, 0.5f); 
+    float desiredDisplayHeight = playerFarmer.body.getRadius() * 5.0f; // same multiplier as AI
+    float scaleFactor = 1.0f;
+    if (frameH > 0) scaleFactor = desiredDisplayHeight / static_cast<float>(frameH);
+    playerFarmer.sprite.setScale(scaleFactor, scaleFactor);
+    centerSpriteOrigin(playerFarmer.sprite);
     playerFarmer.sprite.setPosition(playerFarmer.body.getPosition());
 
 
@@ -624,22 +651,36 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
     sf::Vector2f aiStart(winW * 0.75f, playTop + playHeight * 0.5f);  // three quarters of the screen width
     aiFarmer.body.setRadius(18.f);
     aiFarmer.body.setOrigin(18.f, 18.f);
-    aiFarmer.body.setFillColor(gAppearance.aiColor);
+    aiFarmer.body.setFillColor(gAppearance.aiColor); 
     aiFarmer.body.setPosition(aiStart);
     aiFarmer.score = 0;
 
-    aiFarmer.sprite.setTexture(PlayerSpriteLibrary::instance().getTexture(gAppearance.aiTextureIndex));
-    centerSpriteOrigin(aiFarmer.sprite);
-    aiFarmer.sprite.setScale(0.8f, 0.8f); 
-    aiFarmer.sprite.setPosition(aiFarmer.body.getPosition());
+    // Use the dedicated AI texture from the PlayerSpriteLibrary when available.
+    if (PlayerSpriteLibrary::instance().hasAiTexture()) {
+        aiFarmer.sprite.setTexture(PlayerSpriteLibrary::instance().getAiTexture());
+    } else {
+        // Fallback to a player texture if AI texture missing (avoid crash)
+        aiFarmer.sprite.setTexture(PlayerSpriteLibrary::instance().getTexture(
+            std::max(0, std::min(gAppearance.aiTextureIndex, PlayerSpriteLibrary::instance().getCount() - 1))
+        ));
+    }
+   // --- AI uses a single full-frame sprite ---
+// Use the whole texture
+auto texSizeAI = aiFarmer.sprite.getTexture()->getSize();
+aiFarmer.sprite.setTextureRect(sf::IntRect(0, 0, texSizeAI.x, texSizeAI.y));
 
-    auto texSizeAI = aiFarmer.sprite.getTexture()->getSize();
-    int frameW_AI = texSizeAI.x / 4;
-    int frameH_AI = texSizeAI.y / 4;
-    aiFarmer.sprite.setTextureRect(sf::IntRect(0, 0, frameW_AI, frameH_AI));
-    centerSpriteOrigin(aiFarmer.sprite);
-    aiFarmer.sprite.setPosition(aiFarmer.body.getPosition());
+// Center origin
+centerSpriteOrigin(aiFarmer.sprite);
 
+// Match AI height to the player's displayed height
+float playerHeight = playerFarmer.sprite.getGlobalBounds().height;
+float aiScale = 1.f;
+if (texSizeAI.y > 0)
+    aiScale = playerHeight / static_cast<float>(texSizeAI.y);
+
+aiFarmer.sprite.setScale(aiScale, aiScale);
+centerSpriteOrigin(aiFarmer.sprite);
+aiFarmer.sprite.setPosition(aiFarmer.body.getPosition());
 
     // --------------------------------------------------
     // 11) GENERATE RANDOM REQUESTS FOR THIS LEVEL
@@ -672,6 +713,86 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
     if (!requests.empty() && hasFont) {
         updateCurrentRequestText();
     }
+}
+
+// Recompute layout when window size changes (or on startup)
+void Game::recomputeLayout() {
+    const float winW = static_cast<float>(window.getSize().x);
+    const float winH = static_cast<float>(window.getSize().y);
+
+    const float topBarHeight = 80.f;
+    const float bottomBarHeight = 0.f;
+    const float sideBarWidth = 0.f;
+
+    topBar.setSize({winW, topBarHeight});
+    topBar.setPosition(0.f, 0.f);
+
+    // keep board width as previously chosen (800) but center it
+    board.box.setPosition({(winW - board.box.getSize().x) / 2.f, 0.f});
+
+    bottomBar.setSize({winW, bottomBarHeight});
+    bottomBar.setPosition(0.f, winH - bottomBarHeight);
+
+    leftBar.setSize({sideBarWidth, winH - topBarHeight - bottomBarHeight});
+    leftBar.setPosition(0.f, topBarHeight);
+    rightBar.setSize({sideBarWidth, winH - topBarHeight - bottomBarHeight});
+    rightBar.setPosition(winW - sideBarWidth, topBarHeight);
+
+    // Buttons
+    backButton.box.setPosition({20.f, 5.f});
+    backButton.sprite.setPosition({25.f, 10.f});
+
+    pauseButton.box.setPosition({winW - 70.f, 5.f});
+    pauseButton.sprite.setPosition({winW - 65.f, 10.f});
+
+    // Texts in the board
+    if (hasFont) {
+        playerScoreText.setPosition(board.box.getPosition().x + 20.f, board.box.getPosition().y + 25.f);
+        aiScoreText.setPosition(board.box.getPosition().x + board.box.getSize().x - 120.f, board.box.getPosition().y + 25.f);
+        timerText.setPosition(board.box.getPosition().x + board.box.getSize().x / 2.f - 20.f, board.box.getPosition().y + 25.f);
+        currentRequestText.setPosition(board.box.getPosition().x + 170.f, board.box.getPosition().y + 0.5f);
+    }
+
+    // Playable area
+    float playTop = board.box.getPosition().y + board.box.getSize().y;
+    float playLeft = 0.f;
+    float playRight = winW;
+    float playBottom = winH;
+
+    float playWidth = playRight - playLeft;
+    float playHeight = playBottom - playTop;
+
+    farmBounds = sf::FloatRect(gridOrigin.x, gridOrigin.y, playWidth, playHeight);
+
+    float tileWidth = playWidth / gridCols;
+    float tileHeight = playHeight / gridRows;
+
+    tileSize = std::min(tileWidth, tileHeight);
+    gridOrigin = { playLeft, playTop };
+
+    // Update each tile
+    for (int row = 0; row < gridRows; ++row) {
+        for (int col = 0; col < gridCols; ++col) {
+            int idx = row * gridCols + col;
+            if (idx < 0 || idx >= static_cast<int>(farm.size())) continue;
+            FarmTile& t = farm[idx];
+            t.rect.setSize({tileWidth - 2.f, tileHeight - 2.f});
+            t.rect.setPosition({
+                gridOrigin.x + col * tileWidth + 1.f,
+                gridOrigin.y + row * tileHeight + 1.f
+            });
+        }
+    }
+
+    centerPath.setSize({4.f, playHeight});
+    centerPath.setPosition(winW / 2.f - 2.f, playTop);
+
+    // Reposition farmers to roughly the same relative spots
+    playerFarmer.body.setPosition(winW * 0.25f, playTop + playHeight * 0.5f);
+    playerFarmer.sprite.setPosition(playerFarmer.body.getPosition());
+
+    aiFarmer.body.setPosition(winW * 0.75f, playTop + playHeight * 0.5f);
+    aiFarmer.sprite.setPosition(aiFarmer.body.getPosition());
 }
 
 void Game::showTextPopup(const sf::Font& font, const std::string& msg, sf::Vector2f position) {
@@ -768,6 +889,12 @@ void Game::handleEvent(const sf::Event& e) {
             }
             else if (e.key.code == sf::Keyboard::M) {
                 action = GameAction::Back;   // back to menu
+            }
+            else if (e.key.code == sf::Keyboard::N) {
+                // Next level only available from level 1 when player won
+                if (levelID == 1 && winner == Winner::Player) {
+                    action = GameAction::Next;
+                }
             }
         }
         return; // while popup is open, ignore other events
@@ -929,6 +1056,8 @@ void Game::handleEvent(const sf::Event& e) {
                                     currentRequestText.setString("Request: " + requestToString(requests[currentRequestIndex]));
                                 } else {
                                     currentRequestText.setString("All requests completed!");
+                                    EndGame = true;
+                                    decideWinnerOnGameEnd();
                                 }
                                 updateCurrentRequestText();
 
@@ -974,6 +1103,17 @@ void Game::handleEvent(const sf::Event& e) {
                 }
         }
     }  
+}
+
+void Game::decideWinnerOnGameEnd()
+{
+    if (playerFarmer.score > aiFarmer.score) {
+        winner = Winner::Player;
+    } else if (aiFarmer.score > playerFarmer.score) {
+        winner = Winner::AI;
+    } else {
+        winner = Winner::Tie;
+    }
 }
 
 void Game::update(float dt) {
@@ -1369,6 +1509,7 @@ void Game::update(float dt) {
                     farm[finalTile].crop = aiFarmer.carriedSeed;
                     aiFarmer.hasSeed = false;
                     aiFarmer.carriedSeed = CropType::None;
+                    farm[finalTile].rect.setFillColor(sf::Color(51, 25, 0)); // darker soil
                     std::cout << "AI: planted\n";
                     aiState = AIState::WaitForGrowth;
                 } else {
@@ -1610,19 +1751,11 @@ void Game::draw() {
         }
     }
 
-    // Farmers
-    if (gAppearance.playerUseSprite) {
-        window.draw(playerFarmer.sprite);
-    } else {
-        window.draw(playerFarmer.body);   // circle
-    }
+    // Farmers (sprites-only)
+    window.draw(playerFarmer.sprite);
 
-    // AI
-    if (gAppearance.aiUseSprite) {
-        window.draw(aiFarmer.sprite);
-    } else {
-        window.draw(aiFarmer.body);
-    }
+    // AI (sprites-only)
+    window.draw(aiFarmer.sprite);
 
     // Pause popup
     if (PauseGame && hasFont) {
@@ -1666,6 +1799,10 @@ void Game::draw() {
             msg += "It's a tie! \n\n";
         }
 
+        // If player won on level 1, offer a Next Level option
+        if (levelID == 1 && winner == Winner::Player) {
+            msg += "Press N to go to Next Level\n";
+        }
         msg += "Press P to play again\n";
         msg += "Press M to go back to Menu";
 
