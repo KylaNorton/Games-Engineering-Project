@@ -29,6 +29,7 @@ level.cpp level.hpp
 menu.hpp menu.cpp
 playerSave.hpp playerSave.cpp
 player.hpp player.cpp
+spriteLib.hpp spriteLib.cpp
 main.cpp
 )
 

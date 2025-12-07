@@ -9,6 +9,7 @@
 #include "account.hpp"
 #include "scores.hpp"
 #include "player.hpp"
+#include "spriteLib.hpp"
 #include <iostream>
 
 enum class Screen { Menu, Game, Level, Settings, Map, Scores, Account, GameSettings, LevelSettings, Player };
@@ -24,7 +25,6 @@ int main() {
     window.setVerticalSyncEnabled(true);
 
     Menu menu(window);
-    //Game game(window);
     Level level(window);
     Settings settings(window);
     Map map(window);
@@ -33,11 +33,30 @@ int main() {
     GameSettings gameSettings(window);
     LevelSettings levelSettings(window);
     PlayerSettings player(window);
+    //PlayerSpriteLibrary spriteLib(window);
     Screen screen = Screen::Menu;
 
-    Game* game = nullptr;  // pointer so we can reset the game when starting a new one
-    //
+    PlayerSpriteLibrary::instance().load({
+        "res/sprites/sprite1.png",
+        "res/sprites/sprite2.png",
+        "res/sprites/sprite3.png",
+        "res/sprites/sprite4.png",
+        "res/sprites/sprite5.png",
+        "res/sprites/sprite6.png",
+        "res/sprites/sprite7.png",
+        "res/sprites/sprite8.png",
+        "res/sprites/sprite9.png",
+        "res/sprites/sprite10.png"
+    });
 
+    // init default appearance
+    gAppearance.playerColor = sf::Color::Cyan;
+    gAppearance.aiColor = sf::Color::Red;
+    gAppearance.playerTextureIndex = 0;
+    gAppearance.aiTextureIndex     = 1;
+
+    Game* game = nullptr;  // pointer so we can reset the game when starting a new one
+    
     sf::Clock clk;
 
     bool inMenu = true;
@@ -114,7 +133,6 @@ int main() {
 
             case Screen::Game: {
                 if (!game) {
-                    // safety: if somehow we reached Game without a game instance
                     game = new Game(window, currentLevel);
                 }
                 game->update(dt);
@@ -145,7 +163,7 @@ int main() {
                             delete game;
                             game = nullptr;
                         }
-                        game = new Game(window, currentLevel); //later add +1 if level btw 1 and 3 else loop level 4
+                        game = new Game(window, currentLevel); 
                         screen = Screen::Game;
                     }
                     else if (a == GameSetAction::PlayAgain) {
@@ -183,6 +201,8 @@ int main() {
                         game = nullptr;
                     }
                     game = new Game(window, currentLevel);
+                    game->setGamePaused(true); // start paused for tutorial
+                    game->setTutorial(true); //show tuto for new players
                     screen = Screen::Game;
                     account.resetNewPlayerFlag();
                 }
