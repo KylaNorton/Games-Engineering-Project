@@ -102,41 +102,12 @@ void Scores::draw() {
         title.setPosition(360, 30);
         window.draw(title);
 
-        // Draw score entries
-        float yPos = winH * 0.22f;
-        int rank = 1;
-        float entryX = winW * 0.18f;
-        float lineH = std::max(28.f, winH * 0.04f);
-
-        for (const auto& entry : bestScores) {
-            if (yPos > winH - 80.f) break;  // Avoid drawing off-screen
-
-            sf::Text scoreText(
-                std::to_string(rank) + ". " + entry.playerName + " - " + std::to_string(entry.score),
-                font,
-                static_cast<unsigned int>(std::max(18.f, winH * 0.03f))
-            );
-            scoreText.setFillColor(sf::Color(255, 230, 255));
-            scoreText.setPosition(entryX, yPos);
-            window.draw(scoreText);
-
-            yPos += lineH;
-            rank++;
-        }
-
-        // Draw "no scores" message if empty
-        if (bestScores.empty()) {
-            sf::Text noScores("No scores yet!", font, 24);
-            noScores.setFillColor(sf::Color(200, 200, 200));
-            noScores.setPosition(winW * 0.5f - 60.f, winH * 0.5f);
-            window.draw(noScores);
-
         // Column layout for 4 levels
         const float startX = 80.f;
         const float colW = 200.f;
         const float startY = 100.f;
         const float lineH = 32.f;
-
+        
         for (int level = 0; level < 4; ++level) {
             float x = startX + level * colW;
 
