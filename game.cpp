@@ -614,73 +614,67 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
     playerFarmer.body.setPosition(playerStart);
     playerFarmer.score = 0;
 
-    playerFarmer.sprite.setTexture( PlayerSpriteLibrary::instance().getTexture(gAppearance.playerTextureIndex));
-    centerSpriteOrigin(playerFarmer.sprite);
-    playerFarmer.sprite.setPosition(playerFarmer.body.getPosition());
+playerFarmer.sprite.setTexture(
+    PlayerSpriteLibrary::instance().getTexture(gAppearance.playerTextureIndex)
+);
 
-    // Set initial frame for player sprite. Support both 4x4 sheets and single-frame images.
-    auto texSize = playerFarmer.sprite.getTexture()->getSize();
-    int cols = 4;
-    int rows = 4;
-    int frameW = (cols > 0) ? texSize.x / cols : static_cast<int>(texSize.x);
-    int frameH = (rows > 0) ? texSize.y / rows : static_cast<int>(texSize.y);
+// Use the whole texture (single-frame sprite)
+auto texSize = playerFarmer.sprite.getTexture()->getSize();
+playerFarmer.sprite.setTextureRect(sf::IntRect(
+    0, 0,
+    static_cast<int>(texSize.x),
+    static_cast<int>(texSize.y)
+));
 
-    // Heuristic: if the computed frame is very small compared to the farmer body,
-    // treat the texture as a single-frame image and use the whole texture.
-    float bodyRef = playerFarmer.body.getRadius();
-    if (frameH < static_cast<int>(bodyRef * 1.5f) || frameW < static_cast<int>(bodyRef * 1.5f)) {
-        cols = 1; rows = 1;
-        frameW = static_cast<int>(texSize.x);
-        frameH = static_cast<int>(texSize.y);
-    }
+// Center + scale like the AI
+centerSpriteOrigin(playerFarmer.sprite);
 
-    playerFarmer.sprite.setTextureRect(sf::IntRect(0, 0, frameW, frameH));
+// Desired on-screen height relative to the circle body
+float desiredDisplayHeight = playerFarmer.body.getRadius() * 5.0f; // tweak 5.0f if you want bigger/smaller
 
-    // Scale the player sprite so its displayed height relates to the farmer body radius,
-    // matching the AI sizing logic.
-    centerSpriteOrigin(playerFarmer.sprite);
-    float desiredDisplayHeight = playerFarmer.body.getRadius() * 5.0f; // same multiplier as AI
-    float scaleFactor = 1.0f;
-    if (frameH > 0) scaleFactor = desiredDisplayHeight / static_cast<float>(frameH);
+float scaleFactor = 1.0f;
+if (texSize.y > 0)
+    scaleFactor = desiredDisplayHeight / static_cast<float>(texSize.y);
+
     playerFarmer.sprite.setScale(scaleFactor, scaleFactor);
     centerSpriteOrigin(playerFarmer.sprite);
     playerFarmer.sprite.setPosition(playerFarmer.body.getPosition());
 
 
-    // AI farmer
-    sf::Vector2f aiStart(winW * 0.75f, playTop + playHeight * 0.5f);  // three quarters of the screen width
-    aiFarmer.body.setRadius(18.f);
-    aiFarmer.body.setOrigin(18.f, 18.f);
-    aiFarmer.body.setFillColor(gAppearance.aiColor); 
-    aiFarmer.body.setPosition(aiStart);
-    aiFarmer.score = 0;
+        // AI farmer
+        sf::Vector2f aiStart(winW * 0.75f, playTop + playHeight * 0.5f);  // three quarters of the screen width
+        aiFarmer.body.setRadius(18.f);
+        aiFarmer.body.setOrigin(18.f, 18.f);
+        aiFarmer.body.setFillColor(gAppearance.aiColor); 
+        aiFarmer.body.setPosition(aiStart);
+        aiFarmer.score = 0;
 
-    // Use the dedicated AI texture from the PlayerSpriteLibrary when available.
-    if (PlayerSpriteLibrary::instance().hasAiTexture()) {
-        aiFarmer.sprite.setTexture(PlayerSpriteLibrary::instance().getAiTexture());
-    } else {
-        // Fallback to a player texture if AI texture missing (avoid crash)
-        aiFarmer.sprite.setTexture(PlayerSpriteLibrary::instance().getTexture(
-            std::max(0, std::min(gAppearance.aiTextureIndex, PlayerSpriteLibrary::instance().getCount() - 1))
-        ));
-    }
-   // --- AI uses a single full-frame sprite ---
-// Use the whole texture
-auto texSizeAI = aiFarmer.sprite.getTexture()->getSize();
-aiFarmer.sprite.setTextureRect(sf::IntRect(0, 0, texSizeAI.x, texSizeAI.y));
+        // Use the dedicated AI texture from the PlayerSpriteLibrary when available.
+        if (PlayerSpriteLibrary::instance().hasAiTexture()) {
+            aiFarmer.sprite.setTexture(PlayerSpriteLibrary::instance().getAiTexture());
+        } else {
+            // Fallback to a player texture if AI texture missing (avoid crash)
+            aiFarmer.sprite.setTexture(PlayerSpriteLibrary::instance().getTexture(
+                std::max(0, std::min(gAppearance.aiTextureIndex, PlayerSpriteLibrary::instance().getCount() - 1))
+            ));
+        }
+    // --- AI uses a single full-frame sprite ---
+    // Use the whole texture
+    auto texSizeAI = aiFarmer.sprite.getTexture()->getSize();
+    aiFarmer.sprite.setTextureRect(sf::IntRect(0, 0, texSizeAI.x, texSizeAI.y));
 
-// Center origin
-centerSpriteOrigin(aiFarmer.sprite);
+    // Center origin
+    centerSpriteOrigin(aiFarmer.sprite);
 
-// Match AI height to the player's displayed height
-float playerHeight = playerFarmer.sprite.getGlobalBounds().height;
-float aiScale = 1.f;
-if (texSizeAI.y > 0)
-    aiScale = playerHeight / static_cast<float>(texSizeAI.y);
+    // Match AI height to the player's displayed height
+    float playerHeight = playerFarmer.sprite.getGlobalBounds().height;
+    float aiScale = 1.f;
+    if (texSizeAI.y > 0)
+        aiScale = playerHeight / static_cast<float>(texSizeAI.y);
 
-aiFarmer.sprite.setScale(aiScale, aiScale);
-centerSpriteOrigin(aiFarmer.sprite);
-aiFarmer.sprite.setPosition(aiFarmer.body.getPosition());
+    aiFarmer.sprite.setScale(aiScale, aiScale);
+    centerSpriteOrigin(aiFarmer.sprite);
+    aiFarmer.sprite.setPosition(aiFarmer.body.getPosition());
 
     // --------------------------------------------------
     // 11) GENERATE RANDOM REQUESTS FOR THIS LEVEL
