@@ -1,5 +1,6 @@
 #include "game.hpp"
 #include "player.hpp"
+#include "playerSave.hpp"
 #include "spriteLib.hpp"
 #include <iostream>
 #include <fstream>
@@ -128,6 +129,16 @@ std::vector<int> Game::findPathAStar(int startIdx, int goalIdx) {
             if (nx < 0 || nx >= gridCols || ny < 0 || ny >= gridRows) continue;
             int nidx = ny * gridCols + nx;
             if (!isTileWalkable(nidx)) continue;
+
+            // Restrict A* to the right side of the centre path (AI should not path into the player's side)
+            // Compute the right edge X of the centrePath and skip any neighbour whose tile center
+            // is left of (or on) that edge.
+            {
+                sf::FloatRect wall = centerPath.getGlobalBounds();
+                float wallRightX = wall.left + wall.width;
+                sf::Vector2f tc = tileCenter(nidx);
+                if (tc.x <= wallRightX) continue; // skip tiles on or left of the divider
+            }
 
             int tentativeG = gScore[current] + 1; // cost = 1 per step
             if (tentativeG < gScore[nidx]) {
@@ -920,6 +931,13 @@ void Game::handleEvent(const sf::Event& e) {
                                     currentRequestText.setString("All requests completed!");
                                 }
                                 updateCurrentRequestText();
+
+                                // Other player completed the request — make AI abandon its current task
+                                // so it immediately re-evaluates the new request (or picks a new target).
+                                aiPath.clear();
+                                aiPathIndex = 0;
+                                aiTargetCrop = CropType::None;
+                                aiState = AIState::SelectGoal;
                             }
                         } else {
                             std::cout << "Player: " << cropName(product) << " is not needed for the current request\n";
@@ -1105,6 +1123,17 @@ void Game::update(float dt) {
                 }
             }
         }
+            // Save the player's score for this level (always overwrite).
+            if (!scoreSaved) {
+                int idx = levelID - 1;
+                if (idx < 0) idx = 0;
+                if ((int)PlayerSave::activePlayer.highScores.size() <= idx) {
+                    PlayerSave::activePlayer.highScores.resize(idx + 1, 0);
+                }
+                PlayerSave::activePlayer.highScores[idx] = playerFarmer.score;
+                PlayerSave::activePlayer.saveToFile();
+                scoreSaved = true;
+            }
     }
 
     if (hasFont) {
@@ -1126,6 +1155,64 @@ void Game::update(float dt) {
         }
         aiPath = findPathAStar(start, tileIdx);
         aiPathIndex = 0;
+
+        // If no path found (often because the goal is on the player's side),
+        // try a fallback: find the nearest suitable tile on the AI's right side
+        // and attempt to path to that instead.
+        if (aiPath.empty()) {
+            if (tileIdx < 0 || tileIdx >= static_cast<int>(farm.size())) return;
+
+            // compute right edge of divider
+            sf::FloatRect wall = centerPath.getGlobalBounds();
+            float wallRightX = wall.left + wall.width;
+
+            // determine what kind of tile we were trying to reach
+            GroundType targetType = farm[tileIdx].type;
+            CropType targetCrop = farm[tileIdx].crop;
+            TileState targetState = farm[tileIdx].state;
+
+            int bestCandidate = -1;
+            float bestDist = std::numeric_limits<float>::max();
+
+            for (int i = 0; i < static_cast<int>(farm.size()); ++i) {
+                // must be on the right side of the wall
+                sf::Vector2f tc = tileCenter(i);
+                if (tc.x <= wallRightX) continue;
+
+                // must be walkable
+                if (!isTileWalkable(i)) continue;
+
+                // match candidate to the original target semantics
+                bool match = false;
+                if (targetType == GroundType::Seeds) {
+                    match = (farm[i].type == GroundType::Seeds && farm[i].crop == targetCrop);
+                } else if (targetType == GroundType::Soil) {
+                    // prefer soil tiles that are empty (planting target)
+                    match = (farm[i].type == GroundType::Soil && farm[i].state == TileState::Empty);
+                } else if (targetType == GroundType::Market) {
+                    match = (farm[i].type == GroundType::Market);
+                } else {
+                    // generic fallback: allow any walkable tile on right side
+                    match = true;
+                }
+
+                if (!match) continue;
+
+                float d = std::hypot(tc.x - aiPos.x, tc.y - aiPos.y);
+                if (d < bestDist) {
+                    bestDist = d;
+                    bestCandidate = i;
+                }
+            }
+
+            if (bestCandidate >= 0) {
+                auto tryPath = findPathAStar(start, bestCandidate);
+                if (!tryPath.empty()) {
+                    aiPath = std::move(tryPath);
+                    aiPathIndex = 0;
+                }
+            }
+        }
     };
 
     auto moveAIAlongPath = [&](float dt)->bool {

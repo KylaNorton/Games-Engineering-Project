@@ -43,7 +43,8 @@ private:
     sf::Font font;                // <-- loaded once for all labels
     bool hasFont = false;         // if false, we skip drawing text
     
-    std::vector<ScoreEntry> bestScores;  // Stores all best scores in descending order
+    // Per-level score lists (index 0 => level 1). Each vector is sorted descending.
+    std::array<std::vector<ScoreEntry>, 4> levelScores;
 
     // Colors
     sf::Color bgColor{30, 20, 50};

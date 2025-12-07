@@ -240,6 +240,13 @@ void Account::handleEvent(const sf::Event& e)
             else if (e.text.unicode == '\r') {
                 // ENTER pressed → create player
                 PlayerSave::createNewPlayer(newNameInput);
+                // Set the new player as the current active player so scores go to them
+                {
+                    std::string trimmed = newNameInput;
+                    // update global current player
+                    CURRENT_PLAYER = trimmed;
+                    PlayerSave::setActivePlayer(PlayerSave(trimmed));
+                }
                 loadPlayerButtons();
                 enteringName = false;
                 newNameInput.clear();

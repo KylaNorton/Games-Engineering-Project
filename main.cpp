@@ -125,7 +125,15 @@ int main() {
                 MenuAction a = menu.getAction();
                 if (a != MenuAction::None) {
                     if (a == MenuAction::Start)     screen = Screen::Account;
-                    else if (a == MenuAction::Level)   screen = Screen::LevelSettings;
+                    else if (a == MenuAction::Level) {
+                        // Prevent entering Level/Map without an active player
+                        if (CURRENT_PLAYER.empty()) {
+                            // No player selected → force account selection first
+                            screen = Screen::Account;
+                        } else {
+                            screen = Screen::LevelSettings;
+                        }
+                    }
                     else if (a == MenuAction::Settings)screen = Screen::Settings;
                     menu.clearAction();
                 }
@@ -240,8 +248,13 @@ int main() {
                 LevelAction a = levelSettings.getAction();
                 if (a != LevelAction::None) {
                     if (a == LevelAction::Map) {
-                        // later: reset game state if needed
-                        screen = Screen::Map;
+                        // Require an active player before going to the map
+                        if (CURRENT_PLAYER.empty()) {
+                            screen = Screen::Account;
+                        } else {
+                            // later: reset game state if needed
+                            screen = Screen::Map;
+                        }
                     }
                     else if (a == LevelAction::Scores) {
                         // same for now: go to Game

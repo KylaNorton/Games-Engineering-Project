@@ -180,6 +180,9 @@ private:
     int currentRequestIndex = 0;
     int levelID = 1;
 
+    // Make sure we only save the score once per game end
+    bool scoreSaved = false;
+
     // Counters for how many whole requests each side completed
     int playerRequestsCompleted = 0;
     int aiRequestsCompleted = 0;
