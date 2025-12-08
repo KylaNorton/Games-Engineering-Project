@@ -32,7 +32,7 @@ private:
 
     sf::RenderWindow& window;
     std::array<Button, 4> buttons;
-    sf::Font font;                // <-- loaded once for all labels
+    sf::Font font;                // <- loaded once for all labels
     bool hasFont = false;         // if false, we skip drawing text
     bool confirmQuit { false };   // shows the "Are you sure?" popup
 

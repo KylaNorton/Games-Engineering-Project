@@ -16,8 +16,7 @@ Scores::Scores(sf::RenderWindow& window) : window(window) {
     loadBestScores();
 }
 
-void Scores::handleEvent(const sf::Event& e) {
-    // empty for now
+void Scores::handleEvent(const sf::Event& e) {    
 }
 
 void Scores::loadBestScores() {

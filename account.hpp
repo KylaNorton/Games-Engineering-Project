@@ -54,7 +54,7 @@ private:
     const float renameButtonWidth = 100.f;
     const float deleteButtonPadding = 12.f;
 
-    // Colors
+    // Colours
     sf::Color bgColor{30, 20, 50};
     sf::Color idle{126, 92, 210};
     sf::Color hover{146, 112, 230};

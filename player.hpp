@@ -5,9 +5,7 @@
 #include <vector>
 #include "spriteLib.hpp" //to draw spirtes
 
-// ------------------------------------------------------------------
-// Global appearance configuration for player and AI
-// ------------------------------------------------------------------
+
 struct PlayerAppearance {
     sf::Color playerColor = sf::Color::Cyan;
     sf::Color aiColor = sf::Color::Red;
@@ -32,9 +30,8 @@ extern PlayerAppearance gAppearance;
 // What actions the PlayerSettings screen can trigger
 enum class PlayerSetAction { None, Back };
 
-// ------------------------------------------------------------------
+
 // PlayerSettings screen (separate from Settings)
-// ------------------------------------------------------------------
 class PlayerSettings {
 public:
     explicit PlayerSettings(sf::RenderWindow& window);
@@ -73,7 +70,7 @@ private:
     bool hasFont = false;
 
     // you can reduce/increase the number depending on how many buttons you want
-    std::array<Button, 1> buttons;  // e.g. just a "Back" or "Apply" button
+    std::array<Button, 1> buttons;  
     PlayerSetAction action { PlayerSetAction::None };
 
     sf::Color idle     { 80, 80, 120 };
@@ -93,8 +90,7 @@ private:
     void createSkinButtons();
     void updateSelectionHighlight();
 
-    // --- Previews: sprites ---
-    // layout helpers (updated by recomputeLayout)
+    //Previews: sprites
     float skinRowY = 0.f;
     float skinRowTotalWidth = 0.f;
     float skinBoxSize = 64.f;

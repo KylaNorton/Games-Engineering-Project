@@ -1,6 +1,19 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <vector>
+#include "player.hpp"
+#include "playerSave.hpp"
+#include "spriteLib.hpp"
+#include <iostream>
+#include <fstream>
+#include <random>
+
+#include <queue>
+#include <unordered_map>
+#include <cmath>
+#include <limits>
+#include <algorithm>
+
 
 //different game screen changes
 enum class GameAction { None, Back, Play, Next};
@@ -26,6 +39,7 @@ enum class AIState {
     WaitForGrowth,
     Harvest,
     GoToMarket,
+    GoToTrash,
     Sell,
     Idle
 };
@@ -211,7 +225,7 @@ private:
     CropType aiTargetCrop = CropType::None; // what the AI is currently trying to produce
     std::vector<int> aiPath; // sequence of tile indices (A* result)
     int aiPathIndex = 0; // next waypoint index in aiPath
-    float aiMaxSpeed = 200.f; // AI movement speed
+    float aiMaxSpeed = 175.f; // AI movement speed
     float aiArriveThreshold = 10.f; // pixels to consider 'arrived' at a waypoint
 
     // AI helpers

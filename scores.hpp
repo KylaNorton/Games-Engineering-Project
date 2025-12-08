@@ -41,7 +41,7 @@ private:
 
     sf::RenderWindow& window;
     std::array<Button, 4> buttons;
-    sf::Font font;                // <-- loaded once for all labels
+    sf::Font font;                // <- loaded once for all labels
     bool hasFont = false;         // if false, we skip drawing text
     
     // Per-level score lists (index 0 => level 1). Each vector is sorted descending.

@@ -37,5 +37,5 @@ public:
     sf::Color playerColor = sf::Color::Cyan;
     sf::Color aiColor = sf::Color::Red;
 
-    static PlayerSave activePlayer;   // CURRENT PLAYER
+    static PlayerSave activePlayer;   // Current player
 };

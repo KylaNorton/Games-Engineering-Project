@@ -7,8 +7,7 @@
 
 extern std::string CURRENT_PLAYER;
 
-Account::Account(sf::RenderWindow& window) : window(window)
-{
+Account::Account(sf::RenderWindow& window) : window(window){
     // Load font
     hasFont = font.loadFromFile("res/fonts/Inter-Regular.ttf");
     if (!hasFont) {
@@ -39,8 +38,7 @@ Account::Account(sf::RenderWindow& window) : window(window)
     renameText.setString("");
 }
 
-void Account::loadPlayerButtons()
-{
+void Account::loadPlayerButtons(){
     playerButtons.clear();
 
     std::vector<std::string> players = PlayerSave::loadPlayerList();
@@ -56,8 +54,7 @@ void Account::loadPlayerButtons()
     scrollOffset = 0.f;
 }
 
-void Account::recomputeLayout()
-{
+void Account::recomputeLayout(){
     float winW = static_cast<float>(window.getSize().x);
     float winH = static_cast<float>(window.getSize().y);
 
@@ -90,8 +87,7 @@ void Account::recomputeLayout()
     updateScrollPosition();
 }
 
-void Account::setupButton(Button& b, const std::string& text, sf::Vector2f pos)
-{
+void Account::setupButton(Button& b, const std::string& text, sf::Vector2f pos){
     b.box.setSize(sf::Vector2f(120.f, 50.f));
     b.box.setPosition(pos);
     b.box.setFillColor(idle);
@@ -107,8 +103,7 @@ void Account::setupButton(Button& b, const std::string& text, sf::Vector2f pos)
     }
 }
 
-void Account::setupPlayerButton(PlayerButton& pb, const std::string& name)
-{
+void Account::setupPlayerButton(PlayerButton& pb, const std::string& name){
     pb.box.setSize({700.f, playerButtonHeight});
     pb.box.setFillColor(idle);
     pb.box.setOutlineThickness(2.f);
@@ -123,8 +118,7 @@ void Account::setupPlayerButton(PlayerButton& pb, const std::string& name)
     }
 }
 
-void Account::centerLabel(Button& b)
-{
+void Account::centerLabel(Button& b){
     sf::FloatRect t = b.label.getLocalBounds();
     b.label.setOrigin(t.left + t.width / 2.f, t.top + t.height / 2.f);
 
@@ -132,8 +126,7 @@ void Account::centerLabel(Button& b)
     b.label.setPosition(r.left + r.width / 2.f, r.top + r.height / 2.f);
 }
 
-void Account::centerPlayerLabel(PlayerButton& pb)
-{
+void Account::centerPlayerLabel(PlayerButton& pb){
     sf::FloatRect t = pb.label.getLocalBounds();
     pb.label.setOrigin(t.left + t.width / 2.f, t.top + t.height / 2.f);
 
@@ -141,8 +134,7 @@ void Account::centerPlayerLabel(PlayerButton& pb)
     pb.label.setPosition(r.left + r.width / 2.f, r.top + r.height / 2.f);
 }
 
-void Account::positionPlayerLabelLeft(PlayerButton& pb)
-{
+void Account::positionPlayerLabelLeft(PlayerButton& pb){
     sf::FloatRect t = pb.label.getLocalBounds();
     // origin at left, vertically centered
     pb.label.setOrigin(t.left, t.top + t.height / 2.f);
@@ -151,8 +143,7 @@ void Account::positionPlayerLabelLeft(PlayerButton& pb)
     pb.label.setPosition(r.left + 12.f, r.top + r.height / 2.f - 2.f);
 }
 
-void Account::updateScrollPosition()
-{
+void Account::updateScrollPosition(){
     // Calculate total content height
     float totalHeight = playerButtons.size() * (playerButtonHeight + playerButtonGap);
     
@@ -166,8 +157,7 @@ void Account::updateScrollPosition()
     }
 }
 
-void Account::handleEvent(const sf::Event& e)
-{
+void Account::handleEvent(const sf::Event& e){
     // Rename input mode
     if (renamingIndex != -1) {
         if (e.type == sf::Event::TextEntered) {
@@ -175,7 +165,7 @@ void Account::handleEvent(const sf::Event& e)
                 if (!renameInput.empty()) renameInput.pop_back();
             }
             else if (e.text.unicode == '\r') {
-                // ENTER pressed → perform rename
+                // ENTER pressed -> perform rename
                 if (!renameInput.empty() && renamingIndex >= 0 && renamingIndex < static_cast<int>(playerButtons.size())) {
                     auto trim = [](const std::string& s) {
                         size_t a = s.find_first_not_of(" \t\n\r");
@@ -187,7 +177,7 @@ void Account::handleEvent(const sf::Event& e)
                     std::string oldFilename = trim(playerButtons[renamingIndex].playerFilename);
                     std::string oldPath = std::string("../../../save_files/") + oldFilename;
                     
-                    // Extract old player name (strip _save.txt)
+                    // Extract old player name (x_save.txt)
                     std::string oldName = oldFilename;
                     const std::string suffix = "_save.txt";
                     if (oldName.size() > suffix.size() &&
@@ -273,7 +263,7 @@ void Account::handleEvent(const sf::Event& e)
                 if (!newNameInput.empty()) newNameInput.pop_back();
             }
             else if (e.text.unicode == '\r') {
-                // ENTER pressed → create player
+                // ENTER pressed -> create player
                 PlayerSave::createNewPlayer(newNameInput);
                 // Set the new player as the current active player so scores go to them
                 {
@@ -354,7 +344,7 @@ void Account::handleEvent(const sf::Event& e)
                 sf::FloatRect delRect(delX, btnY, delW, btnH);
 
                 if (renRect.contains(world)) {
-                    // START RENAME
+                    // start rename 
                     renamingIndex = static_cast<int>(i);
                     renameInput.clear();
                     renameText.setString("New name: ");
@@ -362,7 +352,7 @@ void Account::handleEvent(const sf::Event& e)
                 }
 
                 if (delRect.contains(world)) {
-                    // DELETE the player
+                    // delete the player
                     auto trim = [](const std::string& s) {
                         size_t a = s.find_first_not_of(" \t\n\r");
                         if (a == std::string::npos) return std::string();
@@ -396,7 +386,7 @@ void Account::handleEvent(const sf::Event& e)
                     return;
                 }
 
-                // Not clicking rename/delete → select player
+                // Not clicking rename/delete -> select player
                 std::string fn = playerButtons[i].playerFilename;
                 auto trim = [](const std::string& s) {
                     size_t a = s.find_first_not_of(" \t\n\r");
@@ -423,8 +413,7 @@ void Account::handleEvent(const sf::Event& e)
 }
 
 
-void Account::draw()
-{
+void Account::draw(){
     window.clear(bgColor);
 
     // Draw title

@@ -1,5 +1,5 @@
 #include "gameSettings.hpp"
-#include <iostream>
+
 
 
 GameSettings::GameSettings(sf::RenderWindow& window)

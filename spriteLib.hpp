@@ -3,9 +3,8 @@
 #include <vector>
 #include <string>
 
-// ------------------------------------------------------------------
+
 // Player sprite library (for different skins) 
-// ------------------------------------------------------------------
 
 class PlayerSpriteLibrary {
 public:

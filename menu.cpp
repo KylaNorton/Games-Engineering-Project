@@ -101,9 +101,9 @@ void Menu::handleEvent(const sf::Event& e) {
     if (confirmQuit) {
         if (e.type == sf::Event::KeyPressed) {
             if (e.key.code == sf::Keyboard::Y) {
-                window.close();                // Yes → quit app
+                window.close();                // Yes -> quit app
             } else if (e.key.code == sf::Keyboard::N || e.key.code == sf::Keyboard::Escape) {
-                confirmQuit = false;           // No/Esc → close popup, back to menu
+                confirmQuit = false;           // No/Esc -> close popup, back to menu
             }
         }
         return; // while popup is open, ignore other events

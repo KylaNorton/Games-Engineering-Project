@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include <array>
 #include <string>
+#include <iostream>
 
 enum class GameSetAction { None, Account, NewGame, PlayAgain}; 
 
@@ -30,10 +31,10 @@ private:
 
     sf::RenderWindow& window;
     std::array<Button, 3> buttons;
-    sf::Font font;                // <-- loaded once for all labels
+    sf::Font font;                // <- loaded once for all labels
     bool hasFont = false;         // if false, we skip drawing text
 
-    // Colors
+    // Colours
     sf::Color bgColor{30, 20, 50};
     sf::Color idle{126, 92, 210};
     sf::Color hover{146, 112, 230};

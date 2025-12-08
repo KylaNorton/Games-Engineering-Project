@@ -1,2 +1,2 @@
 # Space-Invaders
-Game 2 Space Invaders
+Final project in Games Engineering

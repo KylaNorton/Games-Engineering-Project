@@ -151,14 +151,14 @@ int main() {
         switch (screen) {
             case Screen::Menu: {
                 menu.draw();
-                // read menu action → change screen
+                // read menu action -> change screen
                 MenuAction a = menu.getAction();
                 if (a != MenuAction::None) {
                     if (a == MenuAction::Start)     screen = Screen::Account;
                     else if (a == MenuAction::Level) {
                         // Prevent entering Level/Map without an active player
                         if (CURRENT_PLAYER.empty()) {
-                            // No player selected → force account selection first
+                            // No player selected -> force account selection first
                             screen = Screen::Account;
                         } else {
                             screen = Screen::LevelSettings;

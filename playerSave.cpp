@@ -11,18 +11,18 @@ using namespace std;
 
 PlayerSave PlayerSave::activePlayer = PlayerSave("Default");
 
-/* ----------------------------------------------------- */
+
 PlayerSave::PlayerSave(const string& name)
         : name(name), levelsCompleted(0), highScores(5, 0),
             playerTextureIndex(0), aiTextureIndex(1),
             playerColor(sf::Color::Cyan), aiColor(sf::Color::Red) {}
 
-/* ----------------------------------------------------- */
+
 string PlayerSave::getFilename() const {
     return "../../../save_files/" + name + "_save.txt";
 }
 
-/* ----------------------------------------------------- */
+
 void PlayerSave::saveToFile() const {
     ofstream file(getFilename());
     if (!file) return;
@@ -40,7 +40,7 @@ void PlayerSave::saveToFile() const {
     file << "AIColor: " << static_cast<int>(aiColor.r) << " " << static_cast<int>(aiColor.g) << " " << static_cast<int>(aiColor.b) << "\n";
 }
 
-/* ----------------------------------------------------- */
+
 bool PlayerSave::loadFromFile() {
     ifstream file(getFilename());
     if (!file) return false;
@@ -95,13 +95,13 @@ bool PlayerSave::loadFromFile() {
     return true;
 }
 
-/* ----------------------------------------------------- */
+
 void PlayerSave::registerInPlayerList() const {
     ofstream list("../../../players.txt", ios::app);
     list << name << "_save.txt\n";
 }
 
-/* ----------------------------------------------------- */
+
 vector<string> PlayerSave::loadPlayerList() {
     vector<string> list;
     ifstream file("../../../players.txt");
@@ -114,17 +114,16 @@ vector<string> PlayerSave::loadPlayerList() {
     return list;
 }
 
-/* ----------------------------------------------------- */
+
 void PlayerSave::setActivePlayer(const PlayerSave& ps) {
     activePlayer = ps;
-    // Load the player's file immediately so `activePlayer` contains
-    // the persisted high scores and other data.
+    // Load the player's file immediately so "activePlayer" contains  the persisted high scores and other data.
     activePlayer.loadFromFile();
     // Apply loaded appearance to global appearance
     activePlayer.applyLoadedData();
 }
 
-/* ----------------------------------------------------- */
+
 void PlayerSave::loadPlayerData(const string& filename) {
 
     string fullpath = "../../../save_files/" + filename;
@@ -137,7 +136,7 @@ void PlayerSave::loadPlayerData(const string& filename) {
         cout << line << "\n";
 }
 
-/* ----------------------------------------------------- */
+
 void PlayerSave::applyLoadedData()
 {
     // Transfer appearance from activePlayer to global gAppearance
@@ -147,9 +146,7 @@ void PlayerSave::applyLoadedData()
     // AI color not configurable by player; keep default
 }
 
-/* -----------------------------------------------------
-         PLAYER SELECTION SCREEN
-   ----------------------------------------------------- */
+// Player selection screen
 struct PlayerButton {
     sf::RectangleShape box;
     sf::Text text;

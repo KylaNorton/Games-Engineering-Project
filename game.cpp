@@ -1,23 +1,11 @@
 #include "game.hpp"
-#include "player.hpp"
-#include "playerSave.hpp"
-#include "spriteLib.hpp"
-#include <iostream>
-#include <fstream>
-#include <random>
-
-#include <queue>
-#include <unordered_map>
-#include <cmath>
-#include <limits>
-#include <algorithm>
 
 // Duration for the temporary sold visual (seconds)
 static constexpr float sold_visual_temp = 0.8f;
 // Duration for the temporary seed-taken visual (seconds)
 static constexpr float seed_take_visual_temp = 0.6f;
 
-// --- Convert position to tile index (or -1 if outside) ---
+// Convert position to tile index (or -1 if outside)
 int Game::tileIndexFromPos(const sf::Vector2f& pos) const {
     // pos relative to gridOrigin
     float relX = pos.x - gridOrigin.x;
@@ -44,7 +32,7 @@ int Game::tileIndexFromPos(const sf::Vector2f& pos) const {
     return row * gridCols + col;
 }
 
-// --- Tile center coordinates ---
+// Tile center coordinates
 sf::Vector2f Game::tileCenter(int index) const {
     if (index < 0 || index >= static_cast<int>(farm.size())) return {0.f, 0.f};
     const FarmTile& t = farm[index];
@@ -130,9 +118,8 @@ std::vector<int> Game::findPathAStar(int startIdx, int goalIdx) {
             int nidx = ny * gridCols + nx;
             if (!isTileWalkable(nidx)) continue;
 
-            // Restrict A* to the right side of the centre path (AI should not path into the player's side)
-            // Compute the right edge X of the centrePath and skip any neighbour whose tile center
-            // is left of (or on) that edge.
+            // Restrict A* to the right side of the centre path 
+            // Compute the right edge X of the centrePath and skip any neighbour whose tile center is left of (or on) that edge.
             {
                 sf::FloatRect wall = centerPath.getGlobalBounds();
                 float wallRightX = wall.left + wall.width;
@@ -248,7 +235,6 @@ std::string Game::requestToString(const Request& r) const {
 }
 
 
-/// REQUEST GENERATION ///
 
 // Global RNG for the game file
 static std::mt19937 rng{ std::random_device{}() };
@@ -290,7 +276,7 @@ int Game::numRequestsForLevel(int level) const {
     }
 }
 
-// Generate ONE random request respecting all your rules
+// Generate one random request respecting all your rules
 Request Game::makeRandomRequest(int level) {
     Request r;
 
@@ -299,15 +285,15 @@ Request Game::makeRandomRequest(int level) {
 
     if (allowed.empty()) return r;
 
-    // 1) decide how many different vegetables (1..3, but not more than allowed.size())
+    //decide how many different vegetables (1..3, but not more than allowed.size())
     int maxTypes = static_cast<int>(std::min<size_t>(3, allowed.size()));
     std::uniform_int_distribution<int> distTypes(1, maxTypes);
     int k = distTypes(rng);   // number of different crops in this request
 
-    // 2) choose k distinct crops: shuffle then take first k
+    //choose k distinct crops: shuffle then take first k
     std::shuffle(allowed.begin(), allowed.end(), rng);
 
-    // 3) for each chosen crop, choose a quantity 1..maxQty
+    //for each chosen crop, choose a quantity 1..maxQty
     std::uniform_int_distribution<int> distQty(1, maxQty);
 
     for (int i = 0; i < k; ++i) {
@@ -339,30 +325,23 @@ float Game::initialTimeForLevel(int level) const
 }
 
 
-
-// ------------------------
 // Game constructor 
-// ------------------------
 Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
 
-    // --------------------------------------------------
-    // 1) FONT
-    // --------------------------------------------------
+    // Font
     hasFont = font.loadFromFile("res/fonts/Inter-Regular.ttf");
     if (!hasFont) {
         std::cerr << "[WARN] Font not found at res/fonts/Inter-Regular.ttf. Buttons will show without text.\n";
     }
 
-    // --------------------------------------------------
-    // 2) ICON TEXTURES (back + pause)
-    // --------------------------------------------------
+    // Icon textures
     static sf::Texture backTexture;
     static sf::Texture pauseTexure;
 
     backTexture.loadFromFile("res/icons/arrow.png");
     pauseTexure.loadFromFile("res/icons/pause-play.png");
 
-    // BACK BUTTON (top-left)
+    // Back button (top-left)
     backButton.box.setSize({50.f, 50.f});
     backButton.box.setFillColor(sf::Color(0, 0, 0, 0)); // transparent box for click area
     backButton.box.setPosition({20.f, 5.f});
@@ -371,7 +350,7 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
     backButton.sprite.setScale(0.06f, 0.06f);
     backButton.sprite.setPosition({25.f, 10.f});
 
-    // PAUSE BUTTON (top-right)
+    // Pause button (top-right)
     pauseButton.box.setSize({50.f, 50.f});
     pauseButton.box.setFillColor(sf::Color(0, 0, 0, 0));
     pauseButton.box.setPosition({window.getSize().x - 70.f, 5.f});
@@ -380,9 +359,8 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
     pauseButton.sprite.setScale(0.08f, 0.08f);
     pauseButton.sprite.setPosition({window.getSize().x - 65.f, 10.f});
 
-    // --------------------------------------------------
-    // 3) BASIC WINDOW DIMENSIONS
-    // --------------------------------------------------
+    
+    // Basic window dimensions and layout
     const float winW = static_cast<float>(window.getSize().x);
     const float winH = static_cast<float>(window.getSize().y);
 
@@ -390,10 +368,9 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
     const float bottomBarHeight = 0.f; // set to 0 for now, no MARKER bar
     const float sideBarWidth = 0.f; // no gameplay side bars now
 
-    // --------------------------------------------------
-    // 4) TOP BAR + INFO BOARD (You / Timer / AI)
-    // --------------------------------------------------
-
+   
+    // Top bar + info board (You / Timer / AI)
+   
     // top background bar
     topBar.setSize({winW, topBarHeight}); 
     topBar.setPosition(0.f, 0.f);
@@ -418,9 +395,7 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
     rightBar.setPosition(winW - sideBarWidth, topBarHeight);
     rightBar.setFillColor(sf::Color(60, 40, 90)); // darker purple
 
-    // --------------------------------------------------
-    // 5) TEXTS INSIDE THE INFO BOARD
-    // --------------------------------------------------
+    //Texts inside the info board texts
     if (hasFont) {
         // Player score text (left)
         playerScoreText.setFont(font);
@@ -455,11 +430,7 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
         );
     }
 
-    // --------------------------------------------------
-    // 6) PLAYABLE AREA = EVERYTHING UNDER THE INFO BOARD
-    //    - tiles will cover this whole area
-    //    - both players can move anywhere inside this rect
-    // --------------------------------------------------
+    // Playable area is everything below the top bar and
 
     // bottom of the info board
     float playTop = board.box.getPosition().y + board.box.getSize().y;
@@ -470,11 +441,9 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
     float playWidth  = playRight - playLeft;
     float playHeight = playBottom - playTop;
 
-    // --------------------------------------------------
-    // 7) GRID SIZE
-    //    - choose how many tiles horizontally / vertically
-    //    - tiles will be rectangles that exactly cover the area
-    // --------------------------------------------------
+    
+    // Grid size
+  
 
     // Each tile will be a rectangle; we compute its size from the playable area
     float tileWidth  = playWidth  / gridCols;
@@ -486,9 +455,9 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
     // top-left of the grid
     gridOrigin = { playLeft, playTop };
 
-    // --------------------------------------------------
-    // 8) CREATE BROWN TILE GRID COVERING ALL PLAYABLE AREA
-    // --------------------------------------------------
+    
+    // Create brown soil tiles for the farm grid
+    
     farm.clear();
     farm.resize(gridRows * gridCols);
 
@@ -514,9 +483,8 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
         }
     }
 
-    // --------------------------------------------------
-    // 9) LOAD LEVEL LAYOUT FROM TEXT FILE
-    // --------------------------------------------------
+    
+    // Load level from file
     std::string levelPath = "res/levels/level" + std::to_string(levelID) + ".txt";
 
     centerPath.setSize({4.f, playHeight});
@@ -598,10 +566,8 @@ Game::Game(sf::RenderWindow& win, int levelID) : window(win), levelID(levelID) {
 
     gameTimer = initialTimeForLevel(levelID);
 
-    // --------------------------------------------------
-    // 10) FARMER POSITIONS
-    //      - both start roughly in the middle of their half
-    // --------------------------------------------------
+   //Farmer positions and appearance
+
     sf::Vector2f playerStart(
         winW * 0.25f,                         // quarter of the screen width
         playTop + playHeight * 0.5f           // vertical center of the playable area
@@ -676,9 +642,7 @@ if (texSize.y > 0)
     centerSpriteOrigin(aiFarmer.sprite);
     aiFarmer.sprite.setPosition(aiFarmer.body.getPosition());
 
-    // --------------------------------------------------
-    // 11) GENERATE RANDOM REQUESTS FOR THIS LEVEL
-    // --------------------------------------------------
+    // Generate requests for this level
     int nReq = numRequestsForLevel(levelID);
     requests.clear();
     requests.reserve(nReq);
@@ -1113,9 +1077,8 @@ void Game::decideWinnerOnGameEnd()
 void Game::update(float dt) {
     if (PauseGame || EndGame) return; // don't update when game is paused
 
-    // --------------------------------------------------
-    // 1) PLAYER MOVEMENT INPUT
-    // --------------------------------------------------
+    // Player movement input
+
     sf::Vector2f v(0.f, 0.f);
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))  v.x -= 1.f;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) v.x += 1.f;
@@ -1128,13 +1091,8 @@ void Game::update(float dt) {
         v /= len;
     }
 
-    // --------------------------------------------------
-    // 2) PLAYABLE AREA BOUNDS
-    //    - left = 0
-    //    - right = window width
-    //    - top = bottom of info board
-    //    - bottom = window height
-    // --------------------------------------------------
+    // Playable area is everything below the top bar and bottom of the info board
+
     float playTop = board.box.getPosition().y + board.box.getSize().y;
     float playLeft = 0.f;
     float playRight = static_cast<float>(window.getSize().x);
@@ -1144,9 +1102,8 @@ void Game::update(float dt) {
 
     sf::FloatRect wall = centerPath.getGlobalBounds(); // wall between the two players
     
-    // --------------------------------------------------
-    // 3) MOVE PLAYER IF THE WHOLE CIRCLE STAYS INSIDE playArea
-    // --------------------------------------------------
+    // Move player farmer
+
     if (v.x != 0.f || v.y != 0.f) {
         sf::Vector2f next = playerFarmer.body.getPosition() + v * speed * dt;
         playerFarmer.sprite.setPosition(playerFarmer.body.getPosition()); // keep sprite in sync
@@ -1172,9 +1129,8 @@ void Game::update(float dt) {
         }
     }
 
-    // --------------------------------------------------
-    // 4) AI MOVEMENT
-    // --------------------------------------------------
+    // AI movement: simple left-right bouncing
+
     static float aiDir = 1.f; // 1 = move right, -1 = move left
 
     sf::Vector2f aiVel(aiDir, 0.f); // simple left-right movement
@@ -1199,9 +1155,7 @@ void Game::update(float dt) {
         aiDir *= -1.f; // if next position would leave the area, bounce
     }
 
-    // --------------------------------------------------
-    // 5) REST OF YOUR UPDATE (crops, timer, scores...)
-    // --------------------------------------------------
+    // Rest of update (crops growing, timers, AI logic, etc.)
 
     // Grow crops
     sf::Vector2f p = playerFarmer.body.getPosition();
